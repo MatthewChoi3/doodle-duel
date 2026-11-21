@@ -140,7 +140,7 @@
 
   <section id="lobby" class="screen">
     <h1>Doodle<br><span>Duel</span></h1>
-    <p class="tag">The robot sketches 20 tough pictures in seconds. First to guess each one gets the point.</p>
+    <p class="tag">The robot scribbles 20 tough pictures in 4 seconds each. First to guess gets the point; if nobody gets it, nobody scores.</p>
     <div class="field">
       <label for="name">Your name</label>
       <input id="name" maxlength="12" autocomplete="off" placeholder="Type your name">
@@ -192,8 +192,8 @@
 
   // ---------- settings ----------
   const TOTAL = 20;          // pictures per game
-  const ROUND_MS = 12000;    // time to guess each picture
-  const DRAW_MS = 6000;      // the robot finishes each drawing in 6 seconds
+  const ROUND_MS = 9000;     // time to guess each picture; nobody scores if it runs out
+  const DRAW_MS = 4000;      // the robot finishes each drawing in 4 seconds
   const REVEAL_MS = 3000;    // pause on the answer
   const PREFIX = 'doodleduel-v3-';
   // Supabase Realtime relays messages between phones (publishable key: safe to ship in the page).
@@ -396,28 +396,60 @@
       A(24, 34, 10, 8), A(24, 66, 10, 8), P(33, 39, 88, 70), P(33, 61, 88, 30), P(50, 46, 88, 30), P(50, 54, 88, 70), A(50, 50, 2)] },
     { names: ['teapot', 'tea pot', 'kettle'], s: [
       A(50, 62, 24, 20), A(50, 43, 11, 4, 180, 360), A(50, 36, 3), B(72, 64, 84, 60, 86, 46, 94, 42), B(73, 70, 86, 68, 90, 50, 96, 46), A(26, 60, 10, 12, 90, 270)] },
+    { names: ['anglerfish', 'angler fish', 'angler', 'deep sea fish', 'fish'], s: [
+      A(50, 56, 30, 22), P(21, 52, 24, 58, 27, 52, 30, 59, 33, 52, 36, 58, 39, 53), P(20, 56, 40, 64), B(40, 36, 34, 16, 18, 14, 14, 24), A(14, 27, 3),
+      P(80, 56, 94, 44, 94, 68, 80, 56), A(34, 44, 3), P(56, 76, 62, 88, 68, 76), P(58, 36, 64, 26, 70, 36)] },
+    { names: ['pterodactyl', 'pterosaur', 'dinosaur', 'dino', 'dragon'], s: [
+      A(50, 50, 4, 12), P(50, 38, 60, 30, 76, 28, 60, 34, 53, 40), P(52, 36, 42, 27, 50, 34), A(57, 33, 1),
+      ...MX(P(46, 46, 30, 40, 6, 30, 26, 52, 46, 56)), P(48, 62, 46, 72), P(52, 62, 54, 72)] },
+    { names: ['tractor', 'farm', 'digger'], s: [
+      A(30, 66, 18), A(30, 66, 6), A(76, 74, 10), A(76, 74, 3), P(18, 46, 18, 24, 44, 24, 44, 46), P(23, 29, 39, 29, 39, 42, 23, 42, 23, 29),
+      P(44, 44, 88, 44, 88, 62, 48, 62), P(68, 44, 68, 28), A(70, 22, 4), A(30, 66, 22, 22, 190, 350)] },
+    { names: ['saxophone', 'sax', 'saxaphone'], s: [
+      B(40, 10, 44, 40, 40, 70, 56, 84), B(48, 12, 52, 40, 50, 64, 60, 76), B(56, 84, 68, 90, 76, 78, 72, 62), B(60, 76, 66, 76, 66, 68, 64, 62), A(68, 60, 8, 3.5),
+      P(40, 10, 32, 5, 29, 9, 38, 14), A(46, 30, 2), A(47, 40, 2), A(46, 50, 2), A(48, 60, 2), P(52, 28, 56, 30), P(52, 44, 56, 46)] },
   ];
 
-  // Shuffle stroke order, flip some strokes, subdivide and wobble: the same picture never draws the same way twice.
+  // Make every round hard: random mirror and tilt, shuffled stroke order, some lines left out, shaky pen.
+  // Left-out lines are drawn in pink when the answer is revealed.
+  const len = s => s.reduce((t, p, i) => i ? t + Math.hypot(p[0] - s[i - 1][0], p[1] - s[i - 1][1]) : 0, 0);
   function prep(pic, seed) {
     let h = (seed * 2654435761 + 1013904223) >>> 0 || 1;
     const rnd = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
-    const raw = pic.s.map(s => rnd() < 0.5 ? s.slice().reverse() : s);
-    for (let i = raw.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [raw[i], raw[j]] = [raw[j], raw[i]]; }
+    const flip = rnd() < 0.5, ang = (rnd() * 2 - 1) * 35 * Math.PI / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+    let raw = pic.s.map(s => s.map(([x, y]) => {
+      if (flip) x = 100 - x;
+      const dx = x - 50, dy = y - 50;
+      return [50 + dx * ca - dy * sa, 50 + dx * sa + dy * ca];
+    }));
+    // fit the tilted picture back inside the pad
+    const all = raw.flat(), xs = all.map(p => p[0]), ys = all.map(p => p[1]);
+    const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
+    const k = Math.min(1, 88 / Math.max(maxX - minX, maxY - minY)), cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    raw = raw.map(s => s.map(([x, y]) => [50 + (x - cx) * k, 50 + (y - cy) * k]));
+    raw = raw.map(s => rnd() < 0.5 ? s.slice().reverse() : s);
+    // leave out about a third of the strokes, but always keep the longest one (the main outline)
+    const longest = raw.reduce((b, s, i) => len(s) > len(raw[b]) ? i : b, 0);
+    const dropN = raw.length >= 4 ? Math.floor(raw.length * (0.25 + rnd() * 0.15)) : 0;
+    const dropIdx = new Set(raw.map((_, i) => i).filter(i => i !== longest).sort(() => rnd() - 0.5).slice(0, dropN));
+    let order = raw.map((s, i) => ({ s, hidden: dropIdx.has(i) }));
+    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
     let total = 0;
-    const strokes = raw.map(src => {
+    const strokes = order.map(({ s: src, hidden }) => {
       const pts = [src[0]];
       for (let i = 1; i < src.length; i++) {
         const [x0, y0] = src[i - 1], [x1, y1] = src[i];
         const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 3));
-        for (let k = 1; k <= n; k++) {
-          const f = k / n, last = (k === n);
-          pts.push([x0 + (x1 - x0) * f + (last ? 0 : (rnd() - .5) * .7), y0 + (y1 - y0) * f + (last ? 0 : (rnd() - .5) * .7)]);
+        for (let q = 1; q <= n; q++) {
+          const f = q / n, last = (q === n);
+          pts.push([x0 + (x1 - x0) * f + (last ? 0 : (rnd() - .5) * 1.4), y0 + (y1 - y0) * f + (last ? 0 : (rnd() - .5) * 1.4)]);
         }
       }
       const seg = [0];
-      for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(d); total += d; }
-      return { pts, seg };
+      let l = 0;
+      for (let i = 1; i < pts.length; i++) { const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); seg.push(d); l += d; }
+      if (!hidden) total += l;
+      return { pts, seg, hidden };
     });
     return { names: pic.names, strokes, total };
   }
@@ -770,11 +802,11 @@
     phase = 'reveal';
     cancelAnimationFrame(raf); clearTimeout(claimTimer);
     scores = m.scores || scores;
-    draw(1);
+    draw(1, true);
     el.guess.disabled = true; el.guess.value = '';
     el.bWord.textContent = cur ? cur.names[0] : '';
     el.bWho.style.setProperty('--c', m.winner ? colorOf(m.winner) : 'var(--muted)');
-    el.bWho.textContent = m.winner === myId ? 'You got it!' : m.winner ? nameOf(m.winner) + ' got it' : 'Nobody got it';
+    el.bWho.textContent = m.winner === myId ? 'You got it!' : m.winner ? nameOf(m.winner) + ' got it' : 'Too hard! Nobody scores';
     el.banner.hidden = false;
     el.timer.classList.remove('low');
     paintPlayers(m.winner);
@@ -837,17 +869,24 @@
     const dpr = Math.min(3, window.devicePixelRatio || 1);
     el.cv.style.width = el.cv.style.height = size + 'px';
     if (el.cv.width !== Math.round(size * dpr)) { el.cv.width = el.cv.height = Math.round(size * dpr); }
-    if (cur && phase === 'reveal') draw(1);
+    if (cur && phase === 'reveal') draw(1, true);
   }
   new ResizeObserver(() => { if (!el.game.hidden) sizeCanvas(); }).observe(el.board);
 
-  function drawPic(c2, pic, p) {
+  function drawPic(c2, pic, p, reveal) {
     const s = c2.canvas.width, k = s / 100;
     c2.clearRect(0, 0, s, s);
     if (!pic) return;
-    c2.lineWidth = s * 0.014; c2.lineCap = 'round'; c2.lineJoin = 'round'; c2.strokeStyle = '#1f1d36';
+    c2.lineWidth = s * 0.014; c2.lineCap = 'round'; c2.lineJoin = 'round';
+    if (reveal) {                      // show the lines that were left out, in pink
+      c2.strokeStyle = '#ff6f9c'; c2.setLineDash([s * 0.02, s * 0.02]);
+      for (const st of pic.strokes) if (st.hidden) { c2.beginPath(); st.pts.forEach(([x, y], i) => i ? c2.lineTo(x * k, y * k) : c2.moveTo(x * k, y * k)); c2.stroke(); }
+      c2.setLineDash([]);
+    }
+    c2.strokeStyle = '#1f1d36';
     let left = pic.total * p, tip = null;
     for (const st of pic.strokes) {
+      if (st.hidden) continue;
       if (left <= 0) break;
       c2.beginPath();
       c2.moveTo(st.pts[0][0] * k, st.pts[0][1] * k);
@@ -864,7 +903,7 @@
     }
     if (p < 1 && tip) { c2.fillStyle = '#ff6f9c'; c2.beginPath(); c2.arc(tip[0] * k, tip[1] * k, s * 0.016, 0, Math.PI * 2); c2.fill(); }
   }
-  const draw = p => drawPic(ctx, cur, p);
+  const draw = (p, reveal) => drawPic(ctx, cur, p, reveal);
 
   // ---------- go ----------
   if (params.has('sheet')) {           // picture check sheet for editing the drawings
@@ -873,7 +912,7 @@
     PICTURES.forEach((pic, i) => {
       const f = document.createElement('figure'), c = document.createElement('canvas');
       c.width = c.height = 300; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: (i + 1) + '. ' + pic.names[0] }));
-      grid.append(f); drawPic(c.getContext('2d'), prep(pic, i + 7), 1);
+      grid.append(f); drawPic(c.getContext('2d'), prep(pic, i + 7), 1, true);
     });
     document.body.append(grid);
   } else if (typeof supabase === 'undefined' || typeof QRCode === 'undefined') {
