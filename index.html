@@ -172,7 +172,7 @@
 
 </main>
 
-<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 (() => {
@@ -183,7 +183,10 @@
   const ROUND_MS = 22000;    // time to guess each picture
   const DRAW_MS = 16000;     // how long the robot takes to finish drawing
   const REVEAL_MS = 3200;    // pause on the answer
-  const PREFIX = 'doodleduel-v1-';
+  const PREFIX = 'doodleduel-v2-';
+  // Supabase Realtime relays messages between the two phones (publishable key: safe to ship in the page).
+  const SB_URL = 'https://popmeskdinlnlikzylyt.supabase.co';
+  const SB_KEY = 'sb_publishable_7LN22XE2uyl7vjv_nKglow_Uw6-rTWN';
 
   // ---------- drawing helpers (100 x 100 grid, y goes down) ----------
   const P = (...n) => { const o = []; for (let i = 0; i < n.length; i += 2) o.push([n[i], n[i + 1]]); return o; };
@@ -311,12 +314,12 @@
   const joinCode = (params.get('room') || '').toLowerCase().replace(/[^a-z]/g, '').slice(0, 6);
   const role = joinCode ? 'guest' : 'host';
   const other = role === 'host' ? 'guest' : 'host';
-  let peer = null, conn = null, code = joinCode;
+  let ch = null, subscribed = false, partnerOn = false, readyOnce = false, findTimer = 0, code = joinCode;
   let theirName = '';
   let phase = 'lobby';            // lobby | countdown | round | reveal | end
   let scores = { host: 0, guest: 0 };
   let order = [], roundI = 0, cur = null, t0 = 0, raf = 0, waiting = false;
-  let roundTimer = 0, nextTimer = 0, countTimer = 0;
+  let roundTimer = 0, nextTimer = 0, countTimer = 0, lastWinner = null;
 
   let savedName = '';
   try { savedName = localStorage.getItem('dd-name') || ''; } catch (e) {}
@@ -329,80 +332,96 @@
     if (which === 'game') sizeCanvas();
   }
   function setStatus(text, cls) { el.status.textContent = text; el.status.className = cls || ''; }
-  const send = m => { if (conn && conn.open) conn.send(m); };
+  const send = m => { if (ch && subscribed) ch.send({ type: 'broadcast', event: 'm', payload: m }); };
 
   // ---------- lobby / connection ----------
   el.name.addEventListener('input', () => {
     try { localStorage.setItem('dd-name', el.name.value.trim()); } catch (e) {}
-    send({ t: 'hello', name: myName() });
+    if (ch && subscribed) ch.track({ name: myName() });
+    paintScores();
   });
 
   function joinUrl() { return location.origin + location.pathname + '?room=' + code; }
 
+  function connect() {
+    const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 20 } } });
+    ch = sb.channel(PREFIX + code, { config: { broadcast: { self: false }, presence: { key: role } } });
+    ch.on('broadcast', { event: 'm' }, ({ payload }) => onData(payload));
+    ch.on('presence', { event: 'sync' }, () => {
+      const list = ch.presenceState()[other] || [];
+      if (list.length) theirName = String(list[list.length - 1].name || '').slice(0, 12);
+      const on = list.length > 0;
+      if (on !== partnerOn) { partnerOn = on; on ? onPartnerBack() : onPartnerGone(); }
+      else paintScores();
+    });
+    ch.subscribe(async status => {
+      if (status === 'SUBSCRIBED') {
+        subscribed = true;
+        el.retry.hidden = true;
+        try { await ch.track({ name: myName() }); } catch (e) {}
+        send({ t: 'hello' });          // lets the host resend the game state after a reconnect
+        onReady();
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+        subscribed = false;
+        if (phase === 'lobby') { setStatus('Couldn\'t reach the game server. Check your internet; it keeps retrying.', 'bad'); el.retry.hidden = false; }
+        else feed('Connection lost, reconnecting…');
+      } else if (status === 'CLOSED') subscribed = false;
+    });
+  }
+
+  function onReady() {
+    if (role === 'host') {
+      if (!readyOnce) {
+        readyOnce = true;
+        el.hostBox.hidden = false; el.start.hidden = false;
+        el.code.textContent = code.toUpperCase();
+        el.qr.innerHTML = '';
+        new QRCode(el.qr, { text: joinUrl(), width: 340, height: 340, correctLevel: QRCode.CorrectLevel.M });
+      }
+      refreshLobby();
+    } else {
+      if (phase === 'lobby' && !partnerOn) setStatus('Looking for the game…');
+      clearTimeout(findTimer);
+      findTimer = setTimeout(() => { if (!partnerOn && phase === 'lobby') guestFail('Couldn\'t find game ' + code.toUpperCase() + '. Make sure your partner\'s phone still shows the code, then try again.'); }, 12000);
+    }
+  }
+
   function hostInit() {
     code = Array.from({ length: 4 }, () => 'abcdefghjkmnpqrstuvwxyz'[Math.floor(Math.random() * 23)]).join('');
     setStatus('Setting up…');
-    peer = new Peer(PREFIX + code);
-    peer.on('open', () => {
-      el.hostBox.hidden = false; el.start.hidden = false;
-      el.code.textContent = code.toUpperCase();
-      el.qr.innerHTML = '';
-      new QRCode(el.qr, { text: joinUrl(), width: 340, height: 340, correctLevel: QRCode.CorrectLevel.M });
-      if (!(conn && conn.open)) setStatus('Ask your partner to scan this with their phone camera.');
-    });
-    peer.on('connection', c => {
-      if (conn && conn.open) { c.on('open', () => { c.send({ t: 'full' }); setTimeout(() => c.close(), 400); }); return; }
-      conn = c; wire(c);
-    });
-    peer.on('disconnected', () => { if (peer && !peer.destroyed) peer.reconnect(); });
-    peer.on('error', e => {
-      if (e.type === 'unavailable-id') { peer.destroy(); hostInit(); }
-      else if (!(conn && conn.open)) { setStatus('Couldn\'t reach the game server. Check your internet and try again.', 'bad'); el.retry.hidden = false; }
-    });
+    connect();
   }
 
   function guestInit() {
     setStatus('Joining the game…');
-    peer = new Peer();
-    const fail = setTimeout(() => { if (!(conn && conn.open)) guestFail('Couldn\'t find that game. Ask your partner to keep their screen open, then try again.'); }, 15000);
-    peer.on('open', () => {
-      conn = peer.connect(PREFIX + code, { reliable: true });
-      conn.on('open', () => clearTimeout(fail));
-      wire(conn);
-    });
-    peer.on('error', e => {
-      if (conn && conn.open) return;
-      clearTimeout(fail);
-      guestFail(e.type === 'peer-unavailable' ? 'That game isn\'t open any more. Ask your partner for a new code.' : 'Couldn\'t connect. Check your internet and try again.');
-    });
+    connect();
   }
   function guestFail(text) { setStatus(text, 'bad'); el.retry.hidden = false; }
 
-  function wire(c) {
-    c.on('open', () => { send({ t: 'hello', name: myName() }); refreshLobby(); });
-    c.on('data', onData);
-    c.on('close', onPartnerGone);
-    c.on('error', onPartnerGone);
-  }
-
   function refreshLobby() {
-    const on = conn && conn.open;
+    if (phase !== 'lobby') return;
     if (role === 'host') {
-      el.start.disabled = !on;
-      if (on) setStatus(partnerName() + ' is in. Start when you\'re both ready.', 'ok');
-    } else if (on) {
+      el.start.disabled = !partnerOn;
+      if (partnerOn) setStatus(partnerName() + ' is in. Start when you\'re both ready.', 'ok');
+      else setStatus('Ask your partner to scan this with their phone camera.');
+    } else if (partnerOn) {
+      el.retry.hidden = true;
       setStatus('You\'re in. Waiting for ' + partnerName() + ' to start the game.', 'ok');
     }
   }
 
+  function onPartnerBack() {
+    clearTimeout(findTimer);
+    if (phase === 'lobby') refreshLobby();
+    else { feed(partnerName() + ' is back'); paintScores(); }
+  }
+
+  // Phones drop off briefly when the screen locks, so keep the game going and resync when they return.
   function onPartnerGone() {
-    if (conn && conn.open) return;
-    stopTimers();
-    theirName = ''; conn = null;
-    phase = 'lobby';
-    show('lobby');
-    if (role === 'host') { el.start.disabled = true; setStatus('Your partner left. Ask them to scan the code again.', 'bad'); }
-    else guestFail('Lost the connection. Try again to rejoin.');
+    if (phase === 'lobby') {
+      if (role === 'host') { el.start.disabled = true; setStatus('Waiting for your partner to scan the code.'); }
+      else setStatus('Waiting for the host…');
+    } else feed(partnerName() + ' disconnected, waiting for them…');
   }
 
   el.retry.addEventListener('click', () => location.reload());
@@ -418,16 +437,16 @@
   function onData(m) {
     if (!m || typeof m !== 'object') return;
     switch (m.t) {
-      case 'hello': theirName = String(m.name || '').slice(0, 12); if (phase === 'lobby') refreshLobby(); paintScores(); break;
-      case 'full': guestFail('That game already has two players.'); break;
       case 'miss': if (phase === 'round') feed(partnerName() + ': ' + String(m.text || '').slice(0, 24), true); break;
       // host only
+      case 'hello': if (role === 'host' && phase !== 'lobby') sendSync(); break;
       case 'correct': if (role === 'host' && phase === 'round' && m.i === roundI) endRound('guest'); break;
       // guest only
       case 'start': if (role === 'guest') { scores = { host: 0, guest: 0 }; countdown(); } break;
       case 'round': if (role === 'guest') beginRound(m.i, m.d); break;
-      case 'result': if (role === 'guest') showResult(m); break;
+      case 'result': if (role === 'guest') { if (m.i !== roundI || !cur) beginRound(m.i, m.d); showResult(m); } break;
       case 'end': if (role === 'guest') { scores = m.scores; showEnd(); } break;
+      case 'sync': if (role === 'guest') applySync(m); break;
     }
   }
 
@@ -437,8 +456,20 @@
   el.start.addEventListener('click', startGame);
   el.again.addEventListener('click', startGame);
 
+  function sendSync() {             // host: tell a returning guest where the game is
+    send({ t: 'sync', phase, i: roundI, d: order[roundI], elapsed: performance.now() - t0, scores, winner: lastWinner });
+  }
+  function applySync(m) {           // guest
+    scores = m.scores;
+    if (m.phase === 'end') { showEnd(); return; }
+    if (m.phase === 'countdown') { if (phase !== 'countdown') countdown(); return; }
+    if (m.i !== roundI || phase === 'lobby' || phase === 'end' || !cur) beginRound(m.i, m.d, m.elapsed);
+    if (m.phase === 'reveal') showResult({ winner: m.winner, scores: m.scores });
+    else paintScores();
+  }
+
   function startGame() {            // host
-    if (!(conn && conn.open)) return;
+    if (!partnerOn) return;
     order = PREPPED.map((_, i) => i);
     for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
     order = order.slice(0, TOTAL);
@@ -474,10 +505,10 @@
     roundTimer = setTimeout(() => endRound(null), ROUND_MS);
   }
 
-  function beginRound(i, d) {
+  function beginRound(i, d, elapsed = 0) {
     clearTimeout(countTimer); cancelAnimationFrame(raf);
     phase = 'round'; roundI = i; cur = PREPPED[d]; waiting = false;
-    t0 = performance.now();
+    t0 = performance.now() - Math.max(0, Math.min(ROUND_MS, elapsed || 0));
     show('game');
     el.count.hidden = true; el.banner.hidden = true;
     el.roundNo.textContent = (i + 1) + ' / ' + TOTAL;
@@ -499,7 +530,8 @@
     if (phase !== 'round') return;
     clearTimeout(roundTimer);
     if (winner) scores[winner]++;
-    const m = { t: 'result', i: roundI, winner, scores };
+    lastWinner = winner;
+    const m = { t: 'result', i: roundI, d: order[roundI], winner, scores };
     send(m);
     showResult(m);
     nextTimer = setTimeout(() => {
@@ -599,7 +631,7 @@
   }
 
   // ---------- go ----------
-  if (typeof Peer === 'undefined' || typeof QRCode === 'undefined') {
+  if (typeof supabase === 'undefined' || typeof QRCode === 'undefined') {
     setStatus('The game couldn\'t load. Check your internet and try again.', 'bad'); el.retry.hidden = false;
   } else if (role === 'host') hostInit(); else guestInit();
 

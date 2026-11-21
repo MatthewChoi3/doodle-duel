@@ -11,4 +11,4 @@ A two-phone guessing game. The robot draws 20 pictures, one stroke at a time, an
 
 ## How it works
 
-It is a single `index.html` with no server of its own. The two phones talk to each other directly over WebRTC using [PeerJS](https://peerjs.com/), so both phones need an internet connection.
+It is a single `index.html` hosted on GitHub Pages. The two phones send messages to each other through a [Supabase Realtime](https://supabase.com/docs/guides/realtime) channel, so it works on mobile data and any Wi-Fi. Both phones need an internet connection. If a phone drops out for a moment (screen locked, signal blip), it picks the game back up when it reconnects.
