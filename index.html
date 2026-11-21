@@ -598,33 +598,43 @@
 
   // ---------- guess checking ----------
   const norm = s => String(s).toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
+  // Typo distance where a swapped pair of letters ("tigre" for "tiger") counts as one mistake.
   function dist(a, b) {
-    const row = Array.from({ length: b.length + 1 }, (_, j) => j);
+    const d = Array.from({ length: a.length + 1 }, (_, i) => { const r = new Array(b.length + 1).fill(0); r[0] = i; return r; });
+    for (let j = 0; j <= b.length; j++) d[0][j] = j;
     for (let i = 1; i <= a.length; i++) {
-      let diag = row[0]; row[0] = i;
       for (let j = 1; j <= b.length; j++) {
-        const keep = row[j];
-        row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1));
-        diag = keep;
+        const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost);
+        if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
       }
     }
-    return row[b.length];
+    return d[a.length][b.length];
   }
+  // Spaces, apostrophes and hyphens don't matter: "rubik's cube", "rubiks-cube" and "rubikscube" are the same guess.
   const squash = s => norm(s).replace(/^(a|an|the) /, '').replace(/ /g, '');
+  // How many typos a word allows: short words must be exact, longer words forgive more.
+  const tolerance = n => n <= 3 ? 0 : n <= 6 ? 1 : n <= 10 ? 2 : 3;
+  // Every answer the game knows. A guess that is itself one of these is a different word, not a typo ("pear" never counts for "bear").
+  let KNOWN = null;
+  const known = () => KNOWN || (KNOWN = new Set([...WORDS, ...PICTURES.map(p => p.names[0]), ...(QD ? QD.names : [])].map(squash)));
+  const plural = (g, a) => g === a || g === a + 's' || g + 's' === a || g === a + 'es' || g + 'es' === a;
   function isMatch(guess, names) {
-    const g = norm(guess).replace(/^(a|an|the) /, '');
+    const g = squash(guess);
     if (!g) return false;
-    const joined = g.replace(/ /g, '');
     return names.some(n => {
-      const nj = squash(n);
-      if (!nj) return false;
-      if (joined === nj || joined === nj + 's' || joined + 's' === nj || joined === nj + 'es') return true;
-      return nj.length >= 5 && dist(joined, nj) <= 1;
+      const a = squash(n);
+      if (!a) return false;
+      if (plural(g, a)) return true;
+      const tol = tolerance(a.length);
+      if (!tol || Math.abs(g.length - a.length) > tol) return false;   // "palm" is never "palm tree"
+      if (known().has(g)) return false;
+      return dist(g, a) <= tol;
     });
   }
   function isClose(guess, names) {
-    const j = squash(guess);
-    return j.length >= 3 && names.some(n => { const nj = squash(n); return nj.length >= 4 && dist(j, nj) <= 2; });
+    const g = squash(guess);
+    return g.length >= 3 && names.some(n => { const a = squash(n); return a.length >= 4 && dist(g, a) <= tolerance(a.length) + 2; });
   }
   const maskOf = w => w.replace(/[a-z]/gi, '_');
   const letterCount = m => m.replace(/[^_a-z]/gi, '').length;
@@ -1461,7 +1471,7 @@
 
   // ---------- go ----------
   async function loadSketches() {
-    try { const r = await fetch('drawings.json', { cache: 'force-cache' }); if (r.ok) QD = await r.json(); } catch (e) { QD = null; }
+    try { const r = await fetch('drawings.json', { cache: 'force-cache' }); if (r.ok) { QD = await r.json(); KNOWN = null; } } catch (e) { QD = null; }
   }
   if (params.has('sheet')) {           // check sheet: the hand-made pictures, then a sample of real sketches
     document.getElementById('app').hidden = true;
