@@ -16,9 +16,9 @@
     --ink: #1f1d36;
     --text: #f4f1ff;
     --muted: #a9a4d4;
-    --me: #3ddbd9;
-    --them: #ff6f9c;
     --pop: #ffd23f;
+    --bad: #ff6f9c;
+    --good: #3ddbd9;
     --font: "Fredoka", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
     color-scheme: dark;
   }
@@ -39,7 +39,7 @@
   h1 span { color: var(--pop); }
   .tag { margin: 0; color: var(--muted); font-size: 17px; }
 
-  label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+  label, .label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
   input {
     font: inherit; font-size: 18px; width: 100%; min-width: 0;
     padding: 12px 14px; border-radius: 14px; border: 2px solid transparent;
@@ -59,8 +59,10 @@
   button.ghost { background: transparent; color: var(--text); box-shadow: none; border: 2px solid var(--bg-2); font-size: 16px; padding: 10px 14px; }
   button:focus-visible, input:focus-visible { outline: 3px solid var(--pop); outline-offset: 2px; }
 
-  /* Lobby */
-  #lobby { overflow-y: auto; justify-content: center; }
+  /* Lobby: scrolls on short screens; auto margins centre it without clipping the top. */
+  #lobby { overflow-y: auto; }
+  #lobby > :first-child { margin-top: auto; }
+  #lobby > :last-child { margin-bottom: auto; }
   .field { display: flex; flex-direction: column; gap: 6px; }
   #hostBox { display: flex; flex-direction: column; align-items: center; gap: 10px; background: var(--bg-2); border-radius: 22px; padding: 16px; }
   #qr { background: #fff; padding: 10px; border-radius: 14px; line-height: 0; min-height: 190px; min-width: 190px; }
@@ -68,23 +70,31 @@
   #codeLine { margin: 0; color: var(--muted); }
   #codeLine b { color: var(--text); letter-spacing: .2em; font-size: 20px; }
   #status { margin: 0; min-height: 1.4em; font-size: 17px; text-align: center; }
-  #status.ok { color: var(--me); }
-  #status.bad { color: var(--them); }
+  #status.ok { color: var(--good); }
+  #status.bad { color: var(--bad); }
+  #whoBox { display: flex; flex-direction: column; gap: 6px; }
+
+  /* Player chips (lobby list and in-game scoreboard) */
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .chips.scroll::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none; display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 11px 5px 8px; border-radius: 999px; background: var(--bg-2);
+    border: 2px solid transparent; font-size: 15px; white-space: nowrap;
+  }
+  .chip i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
+  .chip b { font-variant-numeric: tabular-nums; color: var(--c); }
+  .chip.me { border-color: var(--c); }
+  .chip.off { opacity: .45; }
+  .chip.bump b { animation: bump .5s; }
+  @keyframes bump { 40% { transform: scale(1.6); } }
 
   /* Game */
-  .scores { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
-  .pl { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-  .pl span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; }
-  .pl b { font-size: 30px; line-height: 1; font-variant-numeric: tabular-nums; }
-  .pl.me b, .pl.me span { color: var(--me); }
-  .pl.them { justify-content: flex-end; }
-  .pl.them b, .pl.them span { color: var(--them); }
-  .pl.bump b { animation: bump .45s; }
-  @keyframes bump { 40% { transform: scale(1.5); } }
-  #roundNo { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
-
+  .hudtop { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
   .timer { height: 8px; border-radius: 8px; background: var(--bg-2); overflow: hidden; flex: none; }
   .timer i { display: block; height: 100%; width: 100%; background: var(--pop); transform-origin: left; }
+  .timer.low i { background: var(--bad); }
 
   .board { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; }
   canvas { background: var(--paper); border-radius: 20px; box-shadow: 0 6px 0 rgba(0,0,0,.25); display: block; }
@@ -93,13 +103,10 @@
   }
   #banner { justify-content: flex-end; padding-bottom: 6%; }
   #banner .word { background: var(--ink); color: var(--pop); font-size: clamp(24px, 8vw, 38px); font-weight: 700; padding: 6px 18px; border-radius: 14px; text-transform: capitalize; }
-  #banner .who { margin-top: 6px; background: var(--ink); color: var(--text); padding: 4px 12px; border-radius: 10px; font-size: 16px; }
-  #banner .who.me { color: var(--me); }
-  #banner .who.them { color: var(--them); }
+  #banner .who { margin-top: 6px; background: var(--ink); color: var(--c, var(--text)); padding: 4px 12px; border-radius: 10px; font-size: 16px; }
   #count { font-size: 120px; font-weight: 700; color: var(--pop); text-shadow: 0 6px 0 rgba(0,0,0,.3); }
 
   #feed { height: 22px; flex: none; font-size: 15px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
-  #feed .them { color: var(--them); }
   #guessForm { display: flex; gap: 8px; flex: none; }
   #guessForm input { flex: 1; background: var(--paper); color: var(--ink); }
   #guessForm input::placeholder { color: #8d89a8; }
@@ -109,14 +116,21 @@
   @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
 
   /* End */
-  #end { justify-content: center; text-align: center; gap: 18px; }
-  #endTitle { font-size: clamp(38px, 12vw, 56px); font-weight: 700; margin: 0; line-height: 1; }
-  .final { display: flex; justify-content: center; gap: 28px; }
-  .final div { display: flex; flex-direction: column; gap: 2px; }
-  .final b { font-size: 64px; line-height: 1; font-variant-numeric: tabular-nums; }
-  .final .me { color: var(--me); }
-  .final .them { color: var(--them); }
+  #end { justify-content: center; text-align: center; gap: 18px; overflow-y: auto; }
+  #endTitle { font-size: clamp(36px, 11vw, 54px); font-weight: 700; margin: 0; line-height: 1.02; text-wrap: balance; }
+  #rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+  #rank li { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; background: var(--bg-2); border-radius: 14px; padding: 10px 14px; border: 2px solid transparent; }
+  #rank li.me { border-color: var(--c); }
+  #rank .pos { color: var(--muted); font-variant-numeric: tabular-nums; }
+  #rank .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #rank .sc { font-size: 26px; font-weight: 700; color: var(--c); font-variant-numeric: tabular-nums; }
+  #rank li:first-child .sc { font-size: 32px; }
   #endNote { margin: 0; color: var(--muted); }
+
+  /* Picture check sheet (?sheet) */
+  #sheet { position: fixed; inset: 0; overflow: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; background: var(--bg); }
+  #sheet figure { margin: 0; text-align: center; font-size: 14px; }
+  #sheet canvas { width: 100%; height: auto; border-radius: 12px; }
 
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
@@ -126,7 +140,7 @@
 
   <section id="lobby" class="screen">
     <h1>Doodle<br><span>Duel</span></h1>
-    <p class="tag">The robot draws 20 pictures. First one to guess each picture gets the point.</p>
+    <p class="tag">The robot sketches 20 tough pictures in seconds. First to guess each one gets the point.</p>
     <div class="field">
       <label for="name">Your name</label>
       <input id="name" maxlength="12" autocomplete="off" placeholder="Type your name">
@@ -136,18 +150,19 @@
       <p id="codeLine">Room <b id="code"></b></p>
       <button id="share" class="ghost" type="button">Send the link instead</button>
     </div>
+    <div id="whoBox" hidden>
+      <span class="label" id="whoLabel">Players</span>
+      <div class="chips" id="who"></div>
+    </div>
     <p id="status" role="status">Setting up…</p>
     <button id="start" type="button" disabled hidden>Start game</button>
     <button id="retry" type="button" hidden>Try again</button>
   </section>
 
   <section id="game" class="screen" hidden>
-    <header class="scores">
-      <div class="pl me" id="plMe"><b id="sMe">0</b><span id="nMe">You</span></div>
-      <div id="roundNo">1 / 20</div>
-      <div class="pl them" id="plThem"><span id="nThem">Partner</span><b id="sThem">0</b></div>
-    </header>
-    <div class="timer"><i id="bar"></i></div>
+    <div class="hudtop"><span id="roundNo">1 / 20</span><span id="roomTag"></span></div>
+    <div class="chips scroll" id="board-chips"></div>
+    <div class="timer" id="timer"><i id="bar"></i></div>
     <div class="board" id="board">
       <canvas id="cv" width="300" height="300" aria-label="The picture being drawn"></canvas>
       <div id="banner" hidden><div class="word" id="bWord"></div><div class="who" id="bWho"></div></div>
@@ -162,10 +177,7 @@
 
   <section id="end" class="screen" hidden>
     <p id="endTitle"></p>
-    <div class="final">
-      <div class="me"><b id="fMe">0</b><span id="fnMe"></span></div>
-      <div class="them"><b id="fThem">0</b><span id="fnThem"></span></div>
-    </div>
+    <ol id="rank"></ol>
     <p id="endNote"></p>
     <button id="again" type="button" hidden>Play again</button>
   </section>
@@ -180,13 +192,14 @@
 
   // ---------- settings ----------
   const TOTAL = 20;          // pictures per game
-  const ROUND_MS = 22000;    // time to guess each picture
-  const DRAW_MS = 16000;     // how long the robot takes to finish drawing
-  const REVEAL_MS = 3200;    // pause on the answer
-  const PREFIX = 'doodleduel-v2-';
-  // Supabase Realtime relays messages between the two phones (publishable key: safe to ship in the page).
+  const ROUND_MS = 12000;    // time to guess each picture
+  const DRAW_MS = 6000;      // the robot finishes each drawing in 6 seconds
+  const REVEAL_MS = 3000;    // pause on the answer
+  const PREFIX = 'doodleduel-v3-';
+  // Supabase Realtime relays messages between phones (publishable key: safe to ship in the page).
   const SB_URL = 'https://popmeskdinlnlikzylyt.supabase.co';
   const SB_KEY = 'sb_publishable_7LN22XE2uyl7vjv_nKglow_Uw6-rTWN';
+  const COLORS = ['#3ddbd9', '#ff6f9c', '#ffd23f', '#a99bff', '#7ee081', '#ff9f45', '#5cb8ff', '#f78fe0'];
 
   // ---------- drawing helpers (100 x 100 grid, y goes down) ----------
   const P = (...n) => { const o = []; for (let i = 0; i < n.length; i += 2) o.push([n[i], n[i + 1]]); return o; };
@@ -195,62 +208,211 @@
     for (let i = 0; i <= n; i++) { const a = (a0 + (a1 - a0) * i / n) * Math.PI / 180; o.push([cx + rx * Math.cos(a), cy + ry * Math.sin(a)]); }
     return o;
   };
+  const B = (x0, y0, x1, y1, x2, y2, x3, y3) => Array.from({ length: 17 }, (_, i) => {
+    const t = i / 16, u = 1 - t;
+    return [u * u * u * x0 + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3, u * u * u * y0 + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3];
+  });
+  const SP = (cx, cy, r, turns, a0 = 90) => {
+    const n = Math.ceil(turns * 30);
+    return Array.from({ length: n + 1 }, (_, i) => {
+      const t = i / n, a = (a0 + t * turns * 360) * Math.PI / 180, rr = r * (1 - t * 0.9);
+      return [cx + rr * Math.cos(a), cy + rr * Math.sin(a)];
+    });
+  };
   const rays = (cx, cy, r0, r1, n, off = 0) => Array.from({ length: n }, (_, i) => {
     const a = (off + 360 * i / n) * Math.PI / 180;
     return [[cx + r0 * Math.cos(a), cy + r0 * Math.sin(a)], [cx + r1 * Math.cos(a), cy + r1 * Math.sin(a)]];
   });
+  const MX = (...strokes) => strokes.flatMap(s => [s, s.map(([x, y]) => [100 - x, y])]);   // stroke + its mirror
+
+  function windmillBlades() {
+    const out = [];
+    for (const deg of [35, 125, 215, 305]) {
+      const a = deg * Math.PI / 180, ux = Math.cos(a), uy = Math.sin(a), px = -uy, py = ux;
+      const at = (d, w) => [50 + ux * d + px * w, 38 + uy * d + py * w];
+      out.push([at(3, 0), at(36, 0)]);
+      out.push([at(12, 0), at(12, 8), at(36, 8), at(36, 0)]);
+    }
+    return out;
+  }
+  function ferrisCars() {
+    return Array.from({ length: 8 }, (_, i) => {
+      const a = (i * 45) * Math.PI / 180, x = 50 + 30 * Math.cos(a), y = 40 + 30 * Math.sin(a);
+      return P(x - 3.5, y + 1, x + 3.5, y + 1, x + 3.5, y + 7, x - 3.5, y + 7, x - 3.5, y + 1);
+    });
+  }
+
+  const AR = (cx, cy, rx, ry, rot) => {      // rotated ellipse
+    const r = rot * Math.PI / 180, o = [];
+    for (let i = 0; i <= 36; i++) { const t = i / 36 * 2 * Math.PI, x = rx * Math.cos(t), y = ry * Math.sin(t); o.push([cx + x * Math.cos(r) - y * Math.sin(r), cy + x * Math.sin(r) + y * Math.cos(r)]); }
+    return o;
+  };
+  const fan = (cx, cy, r0, r1, angles) => angles.map(d => { const a = d * Math.PI / 180; return [[cx + r0 * Math.cos(a), cy + r0 * Math.sin(a)], [cx + r1 * Math.cos(a), cy + r1 * Math.sin(a)]]; });
+  function stegoPlates() {
+    return [200, 220, 240, 260, 280, 300, 320].map(deg => {
+      const a = deg * Math.PI / 180, px = 48 + 30 * Math.cos(a), py = 62 + 16 * Math.sin(a);
+      let nx = Math.cos(a) / 30, ny = Math.sin(a) / 16; const l = Math.hypot(nx, ny); nx /= l; ny /= l;
+      const tx = -ny, ty = nx, h = 7 + 6 * Math.sin(Math.PI * (deg - 200) / 120);
+      return [[px - tx * 4, py - ty * 4], [px + nx * h, py + ny * h], [px + tx * 4, py + ty * 4]];
+    });
+  }
+  function peacockFan() {
+    const out = [A(50, 60, 42, 40, 180, 360)];
+    for (let d = 195; d <= 345; d += 25) {
+      const a = d * Math.PI / 180;
+      out.push(P(50, 60, 50 + 30 * Math.cos(a), 60 + 28 * Math.sin(a)), A(50 + 34 * Math.cos(a), 60 + 32 * Math.sin(a), 3.5));
+    }
+    return out;
+  }
+  function coaster() {
+    const t1 = B(4, 84, 18, 20, 34, 20, 46, 56), t2 = B(66, 58, 76, 84, 86, 40, 96, 40);
+    const sup = p => P(p[0], p[1], p[0], 92);
+    const c = t1[7];
+    return [t1, A(56, 58, 10, 12), t2, sup(t1[4]), sup(t1[8]), sup(t1[12]), sup(t2[9]), sup(t2[13]), sup(t2[16]), P(2, 92, 98, 92),
+      P(c[0] - 6, c[1] - 1, c[0] - 6, c[1] - 7, c[0] + 6, c[1] - 7, c[0] + 6, c[1] - 1)];
+  }
 
   // names[0] is the answer shown; the rest are also accepted.
   const PICTURES = [
-    { names: ['sun', 'sunshine'], s: [A(50, 50, 17), ...rays(50, 50, 24, 36, 8)] },
-    { names: ['house', 'home', 'hut', 'cottage'], s: [P(25, 45, 25, 85, 75, 85, 75, 45), P(18, 47, 50, 18, 82, 47), P(44, 85, 44, 62, 56, 62, 56, 85), P(61, 54, 70, 54, 70, 64, 61, 64, 61, 54), P(64, 31, 64, 20, 70, 20, 70, 36)] },
-    { names: ['tree', 'oak', 'bush'], s: [P(45, 62, 45, 90), P(55, 62, 55, 90), P(30, 90, 70, 90), A(38, 48, 14), A(62, 48, 14), A(50, 32, 16)] },
-    { names: ['cat', 'kitten', 'kitty'], s: [A(50, 55, 24, 22), P(30, 43, 30, 22, 42, 35), P(70, 43, 70, 22, 58, 35), A(41, 50, 3), A(59, 50, 3), P(47, 58, 53, 58, 50, 62, 47, 58), A(46, 63, 4, 4, 0, 180), A(54, 63, 4, 4, 0, 180), P(38, 60, 18, 56), P(38, 63, 18, 67), P(62, 60, 82, 56), P(62, 63, 82, 67)] },
-    { names: ['fish', 'goldfish'], s: [A(45, 52, 25, 14), P(70, 52, 88, 38, 88, 66, 70, 52), A(32, 48, 2.5), A(38, 52, 6, 9, -60, 60), P(42, 39, 52, 28, 56, 40), A(12, 38, 2.5), A(8, 27, 3.5)] },
-    { names: ['car', 'automobile', 'vehicle', 'taxi'], s: [P(10, 65, 10, 52, 28, 50, 38, 35, 66, 35, 76, 50, 90, 53, 90, 65, 10, 65), A(30, 67, 8), A(70, 67, 8), P(41, 39, 41, 50, 52, 50, 52, 39, 41, 39), P(56, 39, 56, 50, 70, 50, 64, 39, 56, 39)] },
-    { names: ['flower', 'daisy', 'plant', 'sunflower'], s: [A(50, 38, 7), ...Array.from({ length: 6 }, (_, i) => { const a = i * 60 * Math.PI / 180; return A(50 + 13 * Math.cos(a), 38 + 13 * Math.sin(a), 7); }), P(50, 58, 50, 92), P(50, 80, 62, 68, 67, 76, 50, 82), P(50, 74, 38, 64, 33, 72, 50, 77)] },
-    { names: ['star'], s: [Array.from({ length: 11 }, (_, i) => { const a = (-90 + 36 * i) * Math.PI / 180, r = i % 2 ? 13 : 32; return [50 + r * Math.cos(a), 52 + r * Math.sin(a)]; })] },
-    { names: ['heart', 'love'], s: [Array.from({ length: 41 }, (_, i) => { const t = i / 40 * 2 * Math.PI; return [50 + 30 * Math.sin(t) ** 3, 46 - 1.9 * (13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t))]; })] },
-    { names: ['umbrella', 'brolly', 'parasol'], s: [A(50, 50, 34, 30, 180, 360), A(27.3, 50, 11.3, 6, 180, 360), A(50, 50, 11.3, 6, 180, 360), A(72.7, 50, 11.3, 6, 180, 360), P(50, 44, 50, 82), A(44, 82, 6, 6, 0, 180)] },
-    { names: ['cup', 'mug', 'coffee', 'tea', 'teacup'], s: [P(28, 40, 32, 82, 64, 82, 68, 40, 28, 40), A(67, 60, 11, 13, -80, 80), P(40, 32, 36, 26, 42, 20, 38, 14), P(54, 32, 50, 26, 56, 20, 52, 14)] },
-    { names: ['apple'], s: [A(50, 58, 24), P(50, 36, 53, 22), P(53, 28, 64, 20, 66, 28, 53, 28)] },
-    { names: ['boat', 'sailboat', 'ship', 'yacht', 'sail boat'], s: [P(15, 65, 25, 82, 75, 82, 85, 65, 15, 65), P(50, 65, 50, 14), P(50, 17, 78, 58, 50, 58), P(47, 25, 26, 58, 47, 58), P(8, 90, 16, 86, 24, 90, 32, 86, 40, 90, 48, 86, 56, 90, 64, 86, 72, 90, 80, 86, 88, 90)] },
-    { names: ['snowman', 'snow man', 'frosty'], s: [A(50, 72, 18), A(50, 44, 13), A(50, 24, 9), A(47, 22, 1), A(53, 22, 1), P(50, 25, 58, 27, 50, 28), P(38, 42, 20, 32), P(62, 42, 80, 32), A(50, 42, 1.2), A(50, 48, 1.2), P(40, 16, 60, 16), P(44, 16, 44, 6, 56, 6, 56, 16)] },
-    { names: ['balloon'], s: [A(50, 38, 20, 25), P(47, 63, 53, 63, 50, 67, 47, 63), P(50, 67, 46, 74, 54, 82, 48, 92)] },
-    { names: ['clock', 'watch', 'time'], s: [A(50, 50, 32), ...rays(50, 50, 27, 31, 12), P(50, 50, 50, 30), P(50, 50, 64, 57), A(50, 50, 1.5)] },
-    { names: ['ice cream', 'cone', 'ice cream cone', 'gelato'], s: [P(34, 50, 66, 50), P(34, 50, 50, 92, 66, 50), A(50, 42, 18, 18, 155, 385), P(39, 62, 58, 71), P(44, 76, 61, 62), A(50, 19, 4)] },
-    { names: ['key', 'keys'], s: [A(28, 50, 14), A(28, 50, 5), P(42, 47, 86, 47, 86, 53, 42, 53), P(70, 53, 70, 62, 76, 62, 76, 53), P(81, 53, 81, 60)] },
-    { names: ['moon', 'crescent', 'night'], s: [A(50, 50, 30, 30, 50, 310), A(75, 50, 23.7, 23.7, 256, 104), P(80, 20, 80, 28), P(76, 24, 84, 24), P(86, 60, 86, 66), P(83, 63, 89, 63)] },
-    { names: ['rain', 'cloud', 'rain cloud', 'storm', 'raining', 'weather'], s: [A(34, 44, 11, 11, 90, 270), A(50, 33, 16, 13, 180, 360), A(66, 44, 11, 11, 270, 450), P(66, 55, 34, 55), P(36, 62, 32, 72), P(48, 62, 44, 72), P(60, 62, 56, 72), P(42, 76, 38, 86), P(54, 76, 50, 86)] },
-    { names: ['pizza', 'slice', 'pizza slice'], s: [P(20, 25, 80, 25, 50, 90, 20, 25), P(23, 32, 77, 32), A(42, 43, 5), A(58, 45, 5), A(50, 63, 5)] },
-    { names: ['glasses', 'spectacles', 'sunglasses', 'eyeglasses', 'specs'], s: [A(32, 50, 14), A(68, 50, 14), A(50, 50, 4, 4, 180, 360), P(18, 50, 8, 42), P(82, 50, 92, 42)] },
-    { names: ['ladder', 'steps'], s: [P(35, 10, 35, 90), P(65, 10, 65, 90), P(35, 20, 65, 20), P(35, 35, 65, 35), P(35, 50, 65, 50), P(35, 65, 65, 65), P(35, 80, 65, 80)] },
-    { names: ['lightbulb', 'light bulb', 'bulb', 'light', 'lamp', 'idea'], s: [A(50, 40, 22, 22, 120, 420), P(39, 59, 42, 72, 58, 72, 61, 59), P(43, 76, 57, 76), P(45, 80, 55, 80), P(44, 58, 46, 44, 50, 50, 54, 44, 56, 58)] },
-    { names: ['mushroom', 'toadstool', 'shroom'], s: [A(50, 50, 32, 26, 180, 360), P(18, 50, 82, 50), P(40, 50, 38, 85, 62, 85, 60, 50), A(38, 38, 4), A(56, 34, 5), A(67, 44, 3)] },
-    { names: ['rocket', 'spaceship', 'rocketship', 'space ship', 'rocket ship', 'shuttle'], s: [P(50, 10, 62, 30, 62, 65, 38, 65, 38, 30, 50, 10), A(50, 38, 6), P(38, 50, 26, 70, 38, 65), P(62, 50, 74, 70, 62, 65), P(42, 65, 46, 80, 50, 72, 54, 82, 58, 65)] },
-    { names: ['butterfly', 'moth'], s: [A(50, 50, 3, 18), A(34, 38, 14), A(66, 38, 14), A(37, 62, 10), A(63, 62, 10), P(49, 32, 42, 20), P(51, 32, 58, 20)] },
-    { names: ['candle', 'flame'], s: [P(40, 45, 40, 88, 60, 88, 60, 45, 40, 45), P(30, 88, 70, 88), P(50, 45, 50, 38), A(50, 28, 6, 10)] },
-    { names: ['envelope', 'letter', 'mail', 'email', 'message', 'post'], s: [P(15, 30, 85, 30, 85, 72, 15, 72, 15, 30), P(15, 30, 50, 54, 85, 30)] },
-    { names: ['cactus'], s: [P(42, 88, 42, 30), A(50, 30, 8, 8, 180, 360), P(58, 30, 58, 88), P(42, 64, 26, 64, 26, 42), A(30, 42, 4, 4, 180, 360), P(34, 42, 34, 56, 42, 56), P(58, 48, 66, 48, 66, 36), A(70, 36, 4, 4, 180, 360), P(74, 36, 74, 56, 58, 56), P(25, 88, 75, 88)] },
-    { names: ['ghost', 'spirit', 'boo'], s: [A(50, 42, 22, 24, 180, 360), P(28, 42, 28, 82, 35, 74, 42, 82, 50, 74, 58, 82, 65, 74, 72, 82, 72, 42), A(42, 42, 3, 4), A(58, 42, 3, 4), A(50, 56, 4, 5)] },
-    { names: ['crown', 'king', 'queen', 'tiara'], s: [P(20, 70, 20, 35, 35, 52, 50, 28, 65, 52, 80, 35, 80, 70, 20, 70), P(20, 62, 80, 62), A(50, 23, 3), A(20, 31, 3), A(80, 31, 3)] },
-    { names: ['lollipop', 'lolly', 'candy', 'sucker', 'sweet'], s: [A(50, 35, 18), A(50, 35, 10, 10, 0, 300), P(50, 53, 50, 92)] },
-    { names: ['smiley', 'smile', 'face', 'happy', 'emoji', 'smiley face', 'happy face'], s: [A(50, 50, 30), A(40, 42, 3, 4), A(60, 42, 3, 4), A(50, 54, 16, 14, 20, 160)] },
+    { names: ['t rex', 'trex', 'tyrannosaurus', 'tyrannosaurus rex', 'dinosaur', 'dino', 'raptor'], s: [
+      P(4, 60, 22, 50, 38, 40, 52, 34, 60, 30, 63, 20, 70, 14, 86, 14, 94, 20, 94, 27, 80, 29, 93, 31, 92, 36, 76, 38, 70, 42, 67, 52, 62, 60, 54, 65, 44, 66, 30, 62, 4, 60),
+      P(42, 62, 46, 74, 40, 88, 50, 88), P(56, 63, 60, 74, 56, 88, 66, 88), P(68, 48, 74, 52, 76, 49), A(78, 20, 1.8), P(82, 29, 83, 31.5, 85, 29, 86, 31.5, 88, 29)] },
+    { names: ['stegosaurus', 'dinosaur', 'dino', 'stego'], s: [
+      A(48, 62, 30, 16, 180, 360), A(48, 62, 30, 8, 0, 180), ...stegoPlates(), P(19, 60, 3, 52, 19, 66), P(8, 54, 5, 45), P(12, 56, 10, 47),
+      P(78, 62, 90, 64, 94, 70, 86, 72, 78, 68), A(89, 66, 1), P(26, 68, 26, 86, 34, 86, 34, 70), P(60, 69, 60, 86, 68, 86, 68, 67)] },
+    { names: ['octopus', 'squid', 'kraken'], s: [
+      A(50, 34, 18, 20, 150, 390), B(34, 44, 22, 58, 30, 70, 14, 80), B(40, 47, 34, 62, 42, 76, 32, 90), B(47, 48, 46, 64, 54, 74, 46, 90),
+      B(53, 48, 56, 64, 48, 76, 58, 90), B(60, 47, 68, 62, 60, 76, 70, 90), B(66, 44, 80, 58, 70, 70, 86, 80), A(43, 34, 3), A(57, 34, 3)] },
+    { names: ['scorpion'], s: [
+      A(50, 58, 9, 14), B(50, 72, 50, 96, 82, 96, 80, 66), P(80, 66, 75, 60, 84, 61), ...MX(P(44, 48, 32, 40, 26, 30), P(26, 30, 18, 22, 24, 17, 28, 25), P(26, 30, 31, 21),
+      P(42, 54, 30, 52, 24, 58), P(42, 58, 28, 60, 22, 68), P(42, 62, 30, 68, 26, 76), P(43, 66, 34, 74, 32, 84)), A(47, 47, 1), A(53, 47, 1)] },
+    { names: ['seahorse', 'sea horse'], s: [
+      P(64, 20, 84, 22, 84, 27, 66, 28), B(64, 20, 60, 10, 46, 10, 46, 22), B(46, 22, 34, 32, 32, 52, 44, 62), B(66, 28, 58, 36, 62, 54, 52, 64),
+      B(44, 62, 50, 72, 44, 80, 38, 80), B(52, 64, 58, 76, 52, 92, 38, 90), SP(39, 85, 6, 1.3, 270), A(56, 18, 1.5), P(36, 42, 26, 38, 26, 52, 34, 50),
+      P(39, 30, 35, 27), P(36, 38, 31, 37), P(35, 46, 30, 46)] },
+    { names: ['flamingo'], s: [
+      A(40, 40, 18, 10), B(56, 36, 72, 30, 72, 14, 62, 10), A(60, 12, 4), P(57, 15, 54, 21, 57, 25), P(42, 50, 42, 92), P(42, 92, 49, 92),
+      P(47, 49, 54, 64, 42, 68), P(23, 37, 13, 34, 19, 44), B(30, 38, 36, 34, 46, 34, 52, 40)] },
+    { names: ['eiffel tower', 'eiffel', 'paris', 'tower'], s: [
+      P(28, 94, 44, 52, 47, 24, 50, 6, 53, 24, 56, 52, 72, 94), P(37, 72, 63, 72), P(43, 48, 57, 48), P(46, 26, 54, 26), A(50, 94, 12, 14, 180, 360), P(40, 72, 56, 48), P(60, 72, 44, 48)] },
+    { names: ['statue of liberty', 'liberty', 'statue', 'new york', 'lady liberty'], s: [
+      P(61, 4, 67, 4, 66, 11, 62, 11, 61, 4), A(64, 3, 2, 2, 180, 360), P(62, 12, 58, 34), P(66, 12, 62, 32), A(50, 36, 6),
+      ...fan(50, 34, 7, 14, [-160, -125, -90, -55, -20]), P(44, 42, 36, 90, 64, 90, 58, 42), P(46, 52, 42, 88), P(54, 52, 56, 88),
+      P(37, 48, 30, 54, 34, 64, 41, 58, 37, 48), P(28, 90, 72, 90, 72, 96, 28, 96, 28, 90)] },
+    { names: ['bicycle', 'bike', 'cycle', 'bmx'], s: [
+      A(22, 66, 16), A(78, 66, 16), P(22, 66, 46, 66, 36, 40, 22, 66), P(36, 40, 68, 40, 46, 66), P(68, 40, 78, 66), P(66, 32, 68, 40), P(60, 31, 72, 33), P(30, 36, 42, 36), P(46, 66, 50, 73)] },
+    { names: ['motorcycle', 'motorbike', 'motor bike', 'bike', 'scooter', 'moped'], s: [
+      A(20, 68, 13), A(80, 68, 13), A(20, 68, 3), A(80, 68, 3), P(20, 68, 40, 52, 64, 52, 80, 68), P(40, 52, 46, 43, 60, 43, 64, 52), P(26, 47, 42, 47),
+      P(64, 52, 70, 38), P(66, 37, 74, 34), P(43, 58, 57, 58, 57, 67, 43, 67, 43, 58), P(40, 64, 14, 58), A(75, 44, 3)] },
+    { names: ['helicopter', 'chopper', 'heli'], s: [
+      A(42, 55, 20, 13), P(24, 52, 30, 45, 40, 45, 40, 56, 23, 56), P(61, 51, 92, 47), P(61, 58, 92, 50), P(92, 40, 92, 56), P(42, 42, 42, 34), P(10, 33, 78, 33), P(26, 76, 60, 76), P(32, 68, 32, 76), P(52, 68, 52, 76)] },
+    { names: ['steam train', 'train', 'locomotive', 'steam engine', 'engine'], s: [
+      P(10, 72, 10, 36, 32, 36, 32, 72), P(15, 42, 27, 42, 27, 54, 15, 54, 15, 42), P(6, 36, 36, 36), P(32, 48, 80, 48, 80, 72, 32, 72),
+      P(66, 48, 64, 32, 72, 32, 70, 48), A(70, 22, 5), A(79, 14, 6), A(90, 8, 4), A(22, 76, 8), A(46, 78, 6), A(64, 78, 6), P(80, 64, 90, 80, 78, 80), P(22, 76, 64, 78), P(4, 88, 96, 88)] },
+    { names: ['submarine', 'sub', 'u boat'], s: [
+      A(48, 58, 38, 14), P(40, 45, 42, 32, 60, 32, 62, 45), P(52, 32, 52, 20, 60, 20), A(30, 58, 3), A(46, 58, 3), A(62, 58, 3),
+      P(10, 58, 4, 48), P(10, 58, 4, 68), A(88, 40, 2), A(92, 32, 3), A(86, 24, 2)] },
+    { names: ['roller coaster', 'rollercoaster', 'coaster', 'theme park'], s: coaster() },
+    { names: ['ferris wheel', 'big wheel', 'london eye', 'wheel'], s: [
+      A(50, 40, 30), A(50, 40, 3), ...rays(50, 40, 3, 30, 8, 22.5), ...ferrisCars(), P(50, 40, 30, 92), P(50, 40, 70, 92), P(20, 92, 80, 92)] },
+    { names: ['lighthouse', 'light house', 'beacon'], s: [
+      P(38, 88, 42, 32, 58, 32, 62, 88, 38, 88), P(40, 72, 60, 72), P(41, 54, 59, 54), P(43, 32, 43, 22, 57, 22, 57, 32), P(39, 22, 50, 12, 61, 22, 39, 22),
+      P(62, 25, 92, 16), P(62, 29, 92, 36), P(38, 25, 8, 16), P(38, 29, 8, 36), P(47, 88, 47, 80, 53, 80, 53, 88), P(4, 94, 12, 90, 20, 94, 28, 90, 36, 94), P(64, 94, 72, 90, 80, 94, 88, 90, 96, 94)] },
+    { names: ['windmill', 'wind mill', 'mill'], s: [
+      P(38, 92, 43, 42, 57, 42, 62, 92, 38, 92), P(46, 92, 46, 82, 54, 82, 54, 92), A(50, 62, 3), A(50, 38, 3), ...windmillBlades()] },
+    { names: ['snail', 'slug'], s: [
+      P(6, 80, 86, 80, 91, 70, 87, 58, 80, 58, 76, 68, 70, 72), SP(44, 56, 24, 2.6, 90), P(84, 59, 80, 42), P(88, 61, 94, 45), A(80, 41, 2), A(94, 44, 2)] },
+    { names: ['chameleon', 'lizard', 'gecko', 'iguana'], s: [
+      B(20, 56, 30, 34, 60, 32, 70, 50), B(70, 50, 62, 62, 40, 64, 22, 60), P(68, 46, 82, 44, 88, 52, 76, 60, 70, 56), A(76, 50, 3.5), A(76, 50, 1),
+      B(20, 56, 8, 60, 8, 76, 18, 78), SP(20, 72, 6, 1.4, 90), P(4, 72, 96, 72), P(34, 62, 32, 72), P(58, 62, 60, 72), P(88, 52, 97, 50), A(96, 50, 1.5)] },
+    { names: ['giraffe'], s: [
+      A(40, 58, 20, 10), P(25, 64, 25, 92), P(32, 67, 32, 92), P(48, 67, 48, 92), P(55, 64, 55, 92), P(54, 52, 68, 16), P(59, 58, 76, 19),
+      P(66, 16, 72, 10, 88, 13, 90, 19, 76, 21), P(70, 12, 68, 5), P(74, 10, 74, 4), A(78, 14, 1), A(32, 56, 3), A(44, 60, 3), A(51, 54, 2.5), A(63, 40, 2), A(67, 28, 2), P(20, 56, 14, 70)] },
+    { names: ['camel', 'dromedary'], s: [
+      B(20, 56, 26, 30, 40, 30, 46, 48), B(46, 48, 52, 30, 64, 30, 72, 54), P(20, 58, 72, 58), P(20, 56, 20, 58), B(72, 58, 82, 52, 82, 40, 86, 28),
+      B(72, 54, 76, 44, 76, 32, 84, 24), P(84, 24, 94, 26, 94, 30, 86, 30), P(26, 58, 26, 90), P(32, 58, 32, 90), P(60, 58, 60, 90), P(66, 58, 66, 90), P(20, 56, 16, 66), A(89, 26, 1)] },
+    { names: ['rhino', 'rhinoceros'], s: [
+      A(46, 54, 28, 18), P(72, 46, 90, 52, 94, 60, 82, 66, 72, 62), P(90, 52, 94, 38, 87, 50), P(83, 50, 84, 43, 79, 49), P(76, 46, 74, 38, 79, 44),
+      P(26, 68, 26, 88, 34, 88, 34, 70), P(56, 70, 56, 88, 64, 88, 64, 68), A(82, 55, 1.2), P(18, 50, 12, 60)] },
+    { names: ['elephant', 'mammoth'], s: [
+      A(46, 56, 28, 20), A(76, 44, 14), B(88, 50, 96, 62, 92, 78, 86, 86), A(70, 46, 9, 14), P(28, 70, 28, 90, 38, 90, 38, 74), P(56, 73, 56, 90, 66, 90, 66, 70), A(82, 40, 1.5), P(18, 52, 12, 64), P(84, 56, 76, 62)] },
+    { names: ['crocodile', 'alligator', 'croc', 'gator'], s: [
+      P(4, 52, 20, 46, 60, 44, 74, 46, 96, 50, 96, 54, 76, 56), P(74, 58, 96, 58), P(78, 54, 80, 57, 82, 54, 84, 57, 86, 54, 88, 57, 90, 54),
+      P(74, 58, 60, 60, 20, 58, 4, 52), P(24, 58, 20, 70, 28, 70), P(52, 60, 50, 72, 58, 72), A(70, 44, 3, 2.5, 180, 360),
+      P(24, 46, 27, 42, 30, 46, 33, 42, 36, 46, 39, 42, 42, 46, 45, 42, 48, 45)] },
+    { names: ['spider', 'tarantula'], s: [
+      A(50, 60, 11, 14), A(50, 42, 7), P(50, 35, 50, 4), ...MX(P(42, 52, 28, 40, 16, 46), P(40, 57, 24, 52, 10, 60), P(40, 63, 24, 68, 12, 80), P(43, 68, 32, 80, 26, 94))] },
+    { names: ['dragonfly', 'dragon fly', 'damselfly'], s: [
+      A(50, 22, 4), A(50, 32, 3, 6), P(48.5, 38, 49, 90, 51, 90, 51.5, 38), AR(31, 30, 18, 5, -12), AR(69, 30, 18, 5, 12), AR(33, 43, 16, 4.5, 12), AR(67, 43, 16, 4.5, -12), A(47, 20, 1.6), A(53, 20, 1.6)] },
+    { names: ['jellyfish', 'jelly fish', 'jelly'], s: [
+      A(50, 40, 26, 22, 180, 360), P(24, 40, 30, 44, 36, 40, 42, 44, 48, 40, 54, 44, 60, 40, 66, 44, 72, 40, 76, 40),
+      B(32, 44, 26, 58, 38, 70, 30, 90), B(44, 44, 40, 60, 50, 72, 42, 92), B(56, 44, 60, 60, 50, 72, 58, 92), B(68, 44, 74, 58, 62, 70, 70, 90)] },
+    { names: ['whale', 'orca'], s: [
+      B(15, 60, 15, 32, 70, 30, 78, 52), P(78, 52, 88, 46), P(88, 46, 96, 36), P(88, 46, 97, 55), B(15, 60, 25, 76, 65, 76, 78, 58), A(28, 52, 1.5), P(15, 60, 40, 62),
+      P(35, 31, 35, 18), B(35, 18, 30, 12, 26, 14, 24, 20), B(35, 18, 40, 12, 44, 14, 46, 20)] },
+    { names: ['shark', 'jaws'], s: [
+      B(12, 55, 30, 40, 70, 40, 95, 52), B(95, 52, 80, 62, 40, 64, 12, 56), P(45, 43, 52, 22, 62, 42), P(12, 55, 4, 38, 18, 52), P(12, 56, 4, 72, 20, 58),
+      P(75, 48, 73, 56), P(71, 48, 69, 56), A(84, 49, 1.5), P(80, 57, 90, 56), P(44, 58, 52, 68, 56, 60)] },
+    { names: ['crab', 'lobster'], s: [
+      A(50, 60, 24, 13), A(50, 63, 5, 3, 0, 180), ...MX(P(43, 48, 41, 36), A(41, 34, 2.5), P(30, 52, 20, 40), P(20, 40, 12, 30, 22, 25, 25, 33, 20, 40),
+      P(28, 62, 14, 66, 10, 76), P(30, 67, 18, 74, 14, 84), P(34, 71, 26, 80, 24, 90))] },
+    { names: ['owl'], s: [
+      A(50, 56, 22, 30), A(41, 42, 7), A(59, 42, 7), A(41, 43, 2.2), A(59, 43, 2.2), P(47, 50, 50, 57, 53, 50), ...MX(P(33, 34, 30, 20, 41, 29), B(30, 50, 36, 62, 36, 72, 32, 80)),
+      P(44, 66, 46, 68, 48, 66), P(52, 66, 54, 68, 56, 66), P(48, 74, 50, 76, 52, 74), P(10, 88, 90, 88), P(44, 86, 44, 91), P(56, 86, 56, 91)] },
+    { names: ['peacock', 'peafowl', 'turkey'], s: [
+      ...peacockFan(), A(50, 66, 8, 12), B(50, 56, 46, 46, 54, 38, 50, 28), A(50, 26, 3), P(50, 23, 48, 16), P(50, 23, 52, 16), P(47, 77, 46, 92), P(53, 77, 54, 92)] },
+    { names: ['bat', 'vampire'], s: [
+      A(50, 50, 5, 10), ...MX(P(46, 44, 36, 36, 22, 32, 6, 40, 14, 44, 18, 52, 26, 48, 32, 56, 40, 50, 46, 56), P(47, 42, 45, 34, 49, 40))] },
+    { names: ['volcano', 'eruption', 'mountain'], s: [
+      P(8, 90, 38, 32, 62, 32, 92, 90), A(50, 32, 12, 3.5), A(42, 20, 6), A(54, 14, 7), A(64, 8, 4), P(44, 33, 40, 48, 46, 56), P(57, 33, 62, 46, 58, 52)] },
+    { names: ['hot air balloon', 'air balloon', 'balloon'], s: [
+      A(50, 36, 26, 28, 140, 400), P(30, 54, 42, 70), P(70, 54, 58, 70), P(42, 70, 58, 70), B(50, 8, 38, 20, 38, 50, 44, 70), B(50, 8, 62, 20, 62, 50, 56, 70),
+      P(42, 70, 44, 78), P(58, 70, 56, 78), P(42, 78, 58, 78, 56, 90, 44, 90, 42, 78)] },
+    { names: ['palm tree', 'palm', 'island', 'coconut tree'], s: [
+      B(48, 92, 52, 72, 44, 50, 50, 30), B(56, 92, 60, 72, 52, 50, 57, 30), B(54, 28, 40, 18, 24, 22, 14, 34), B(54, 28, 66, 16, 82, 18, 92, 30),
+      B(54, 28, 46, 30, 34, 40, 30, 52), B(54, 28, 64, 32, 74, 42, 76, 54), B(54, 28, 52, 18, 46, 10, 38, 8), A(51, 34, 3), A(58, 35, 3), A(52, 96, 36, 6, 180, 360)] },
+    { names: ['pineapple'], s: [
+      A(50, 64, 16, 24), P(38, 50, 60, 82), P(44, 43, 64, 70), P(36, 64, 52, 87), P(62, 50, 40, 82), P(56, 43, 36, 70), P(64, 64, 48, 87),
+      P(42, 42, 36, 22, 46, 34, 50, 10, 54, 34, 64, 22, 58, 42)] },
+    { names: ['grand piano', 'piano', 'keyboard'], s: [
+      P(10, 52, 10, 44, 50, 44), B(50, 44, 66, 44, 70, 34, 90, 40), P(90, 40, 90, 52, 10, 52), P(10, 44, 60, 14, 90, 40), P(56, 44, 58, 24),
+      P(10, 52, 10, 58, 44, 58, 44, 52), P(15, 52, 15, 58), P(20, 52, 20, 58), P(25, 52, 25, 58), P(30, 52, 30, 58), P(35, 52, 35, 58), P(40, 52, 40, 58),
+      P(14, 58, 14, 88), P(84, 52, 84, 88), P(48, 58, 48, 88), P(44, 88, 52, 88)] },
+    { names: ['guitar', 'acoustic guitar', 'ukulele', 'violin'], s: [
+      A(50, 72, 19, 17), A(50, 48, 14, 12), A(50, 58, 5), P(46, 37, 46, 10), P(54, 37, 54, 10), P(44, 10, 44, 3, 56, 3, 56, 10, 44, 10),
+      P(41, 5, 44, 5), P(56, 5, 59, 5), P(41, 8, 44, 8), P(56, 8, 59, 8), P(43, 79, 57, 79), P(48, 10, 48, 79), P(52, 10, 52, 79)] },
+    { names: ['trumpet', 'horn', 'bugle', 'cornet', 'trombone'], s: [
+      A(80, 50, 6, 16), P(20, 46, 76, 40), P(20, 54, 76, 60), P(40, 45, 40, 33), P(48, 44, 48, 32), P(56, 43, 56, 31), P(37, 32, 43, 32), P(45, 31, 51, 31), P(53, 30, 59, 30),
+      P(12, 47, 20, 46, 20, 54, 12, 53, 12, 47), A(48, 60, 18, 8, 0, 180)] },
+    { names: ['microscope'], s: [
+      P(20, 90, 70, 90, 70, 84, 20, 84, 20, 90), B(56, 84, 76, 70, 76, 40, 58, 28), P(36, 14, 48, 8, 62, 44, 50, 50, 36, 14), P(28, 62, 72, 62),
+      P(53, 50, 52, 58), P(36, 14, 33, 6, 43, 3, 48, 8), A(68, 52, 4)] },
+    { names: ['telescope'], s: [
+      P(18, 52, 74, 26, 78, 34, 22, 60, 18, 52), P(20, 56, 12, 60), P(48, 42, 32, 92), P(48, 42, 64, 92), P(48, 42, 48, 92), A(88, 12, 1.2), P(70, 8, 70, 14), P(67, 11, 73, 11)] },
+    { names: ['chess knight', 'knight', 'horse', 'chess', 'chess piece'], s: [
+      P(28, 92, 72, 92, 68, 84, 32, 84, 28, 92), B(34, 84, 30, 66, 44, 58, 40, 46), B(66, 84, 74, 60, 66, 30, 54, 18),
+      P(40, 46, 26, 52, 20, 46, 30, 30, 44, 22, 48, 12, 54, 18), A(41, 32, 1.6), A(24, 47, 1), P(58, 30, 62, 40), P(62, 44, 66, 56)] },
+    { names: ['scissors', 'scissor', 'shears'], s: [
+      A(24, 34, 10, 8), A(24, 66, 10, 8), P(33, 39, 88, 70), P(33, 61, 88, 30), P(50, 46, 88, 30), P(50, 54, 88, 70), A(50, 50, 2)] },
+    { names: ['teapot', 'tea pot', 'kettle'], s: [
+      A(50, 62, 24, 20), A(50, 43, 11, 4, 180, 360), A(50, 36, 3), B(72, 64, 84, 60, 86, 46, 94, 42), B(73, 70, 86, 68, 90, 50, 96, 46), A(26, 60, 10, 12, 90, 270)] },
   ];
 
-  // Subdivide each stroke and add a slight wobble so it looks hand-drawn.
+  // Shuffle stroke order, flip some strokes, subdivide and wobble: the same picture never draws the same way twice.
   function prep(pic, seed) {
-    let h = (seed + 1) * 2654435761 >>> 0;
-    const rnd = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return h / 4294967296 - .5; };
+    let h = (seed * 2654435761 + 1013904223) >>> 0 || 1;
+    const rnd = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
+    const raw = pic.s.map(s => rnd() < 0.5 ? s.slice().reverse() : s);
+    for (let i = raw.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [raw[i], raw[j]] = [raw[j], raw[i]]; }
     let total = 0;
-    const strokes = pic.s.map(raw => {
-      const pts = [raw[0]];
-      for (let i = 1; i < raw.length; i++) {
-        const [x0, y0] = raw[i - 1], [x1, y1] = raw[i];
+    const strokes = raw.map(src => {
+      const pts = [src[0]];
+      for (let i = 1; i < src.length; i++) {
+        const [x0, y0] = src[i - 1], [x1, y1] = src[i];
         const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 3));
         for (let k = 1; k <= n; k++) {
           const f = k / n, last = (k === n);
-          pts.push([x0 + (x1 - x0) * f + (last ? 0 : rnd() * .7), y0 + (y1 - y0) * f + (last ? 0 : rnd() * .7)]);
+          pts.push([x0 + (x1 - x0) * f + (last ? 0 : (rnd() - .5) * .7), y0 + (y1 - y0) * f + (last ? 0 : (rnd() - .5) * .7)]);
         }
       }
       const seg = [0];
@@ -259,7 +421,6 @@
     });
     return { names: pic.names, strokes, total };
   }
-  const PREPPED = PICTURES.map(prep);
 
   // ---------- guess checking ----------
   const norm = s => s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
@@ -290,12 +451,12 @@
   const el = {
     lobby: $('lobby'), game: $('game'), end: $('end'),
     name: $('name'), hostBox: $('hostBox'), qr: $('qr'), code: $('code'), share: $('share'),
+    whoBox: $('whoBox'), whoLabel: $('whoLabel'), who: $('who'),
     status: $('status'), start: $('start'), retry: $('retry'),
-    nMe: $('nMe'), nThem: $('nThem'), sMe: $('sMe'), sThem: $('sThem'), plMe: $('plMe'), plThem: $('plThem'),
-    roundNo: $('roundNo'), bar: $('bar'), board: $('board'), cv: $('cv'),
+    roundNo: $('roundNo'), roomTag: $('roomTag'), chips: $('board-chips'), timer: $('timer'), bar: $('bar'), board: $('board'), cv: $('cv'),
     banner: $('banner'), bWord: $('bWord'), bWho: $('bWho'), count: $('count'),
     feed: $('feed'), form: $('guessForm'), guess: $('guess'),
-    endTitle: $('endTitle'), fMe: $('fMe'), fThem: $('fThem'), fnMe: $('fnMe'), fnThem: $('fnThem'), endNote: $('endNote'), again: $('again'),
+    endTitle: $('endTitle'), rank: $('rank'), endNote: $('endNote'), again: $('again'),
   };
   const ctx = el.cv.getContext('2d');
 
@@ -313,53 +474,69 @@
   const params = new URLSearchParams(location.search);
   const joinCode = (params.get('room') || '').toLowerCase().replace(/[^a-z]/g, '').slice(0, 6);
   const role = joinCode ? 'guest' : 'host';
-  const other = role === 'host' ? 'guest' : 'host';
-  let ch = null, subscribed = false, partnerOn = false, readyOnce = false, findTimer = 0, code = joinCode;
-  let theirName = '';
-  let phase = 'lobby';            // lobby | countdown | round | reveal | end
-  let scores = { host: 0, guest: 0 };
-  let order = [], roundI = 0, cur = null, t0 = 0, raf = 0, waiting = false;
-  let roundTimer = 0, nextTimer = 0, countTimer = 0, lastWinner = null;
+  const store = {
+    get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
+  };
+  // A stable id per tab, so reloading the page rejoins with the same score.
+  const myId = (() => {
+    const k = 'dd-id-' + (joinCode || 'host');
+    let v = store.get(k);
+    if (!v) { v = Math.random().toString(36).slice(2, 10); store.set(k, v); }
+    return v;
+  })();
+
+  let ch = null, subscribed = false, readyOnce = false, findTimer = 0, code = joinCode;
+  let online = {};                 // id -> { name, host } for everyone connected right now
+  let names = {};                  // id -> last known name, kept after someone leaves
+  let hostOnline = false;
+  let phase = 'lobby';             // lobby | countdown | round | reveal | end
+  let scores = {};                 // id -> points (the host owns the truth)
+  let order = [], seeds = [], roundI = 0, cur = null, curD = -1, curS = 0, t0 = 0, raf = 0;
+  let waiting = false, claimTries = 0, claimTimer = 0, lastWinner = null;
+  let roundTimer = 0, nextTimer = 0, countTimer = 0, wake = null;
 
   let savedName = '';
   try { savedName = localStorage.getItem('dd-name') || ''; } catch (e) {}
   el.name.value = savedName;
-  const myName = () => el.name.value.trim() || (role === 'host' ? 'Player 1' : 'Player 2');
-  const partnerName = () => theirName || 'Partner';
+  const myName = () => el.name.value.trim() || (role === 'host' ? 'Host' : 'Player');
+  const nameOf = id => id === myId ? myName() : (online[id] && online[id].name) || names[id] || 'Player';
+  // Colours follow the sorted player ids, so every phone shows the same colour for the same player and nobody shares one (up to 8).
+  const colorOf = id => {
+    const ids = [...new Set([...Object.keys(scores), ...Object.keys(online), myId, id])].sort();
+    return COLORS[ids.indexOf(id) % COLORS.length];
+  };
 
   function show(which) {
     for (const s of ['lobby', 'game', 'end']) el[s].hidden = (s !== which);
     if (which === 'game') sizeCanvas();
   }
   function setStatus(text, cls) { el.status.textContent = text; el.status.className = cls || ''; }
+  function feed(text) { el.feed.textContent = text; }
   const send = m => { if (ch && subscribed) ch.send({ type: 'broadcast', event: 'm', payload: m }); };
 
-  // ---------- lobby / connection ----------
+  // ---------- connection ----------
+  let nameTimer = 0;
   el.name.addEventListener('input', () => {
     try { localStorage.setItem('dd-name', el.name.value.trim()); } catch (e) {}
-    if (ch && subscribed) ch.track({ name: myName() });
-    paintScores();
+    paintPlayers();
+    clearTimeout(nameTimer);       // tell the others once typing pauses, not on every key
+    nameTimer = setTimeout(() => { if (ch && subscribed) ch.track({ name: myName(), host: role === 'host' }); }, 400);
   });
 
   function joinUrl() { return location.origin + location.pathname + '?room=' + code; }
 
   function connect() {
     const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 20 } } });
-    ch = sb.channel(PREFIX + code, { config: { broadcast: { self: false }, presence: { key: role } } });
+    ch = sb.channel(PREFIX + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
     ch.on('broadcast', { event: 'm' }, ({ payload }) => onData(payload));
-    ch.on('presence', { event: 'sync' }, () => {
-      const list = ch.presenceState()[other] || [];
-      if (list.length) theirName = String(list[list.length - 1].name || '').slice(0, 12);
-      const on = list.length > 0;
-      if (on !== partnerOn) { partnerOn = on; on ? onPartnerBack() : onPartnerGone(); }
-      else paintScores();
-    });
+    ch.on('presence', { event: 'sync' }, onPresence);
     ch.subscribe(async status => {
       if (status === 'SUBSCRIBED') {
         subscribed = true;
         el.retry.hidden = true;
-        try { await ch.track({ name: myName() }); } catch (e) {}
-        send({ t: 'hello' });          // lets the host resend the game state after a reconnect
+        try { await ch.track({ name: myName(), host: role === 'host' }); } catch (e) {}
+        if (role === 'guest') send({ t: 'hello', id: myId });   // the host replies with the game state
         onReady();
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         subscribed = false;
@@ -367,6 +544,33 @@
         else feed('Connection lost, reconnecting…');
       } else if (status === 'CLOSED') subscribed = false;
     });
+  }
+
+  function onPresence() {
+    const st = ch.presenceState(), next = {};
+    for (const id in st) {
+      const metas = st[id]; if (!metas.length) continue;
+      const m = metas[metas.length - 1];
+      next[id] = { name: String(m.name || 'Player').slice(0, 12), host: !!m.host };
+      names[id] = next[id].name;
+    }
+    if (phase !== 'lobby' && phase !== 'end') {
+      for (const id in next) if (!online[id] && id !== myId) feed(nameOf(id) + ' joined');
+      for (const id in online) if (!next[id] && id !== myId) feed(nameOf(id) + ' left');
+    }
+    online = next;
+    const hadHost = hostOnline;
+    hostOnline = Object.values(online).some(p => p.host);
+    if (role === 'host') {
+      for (const id in online) if (phase !== 'lobby' && !(id in scores)) scores[id] = 0;
+      refreshLobby();
+    } else {
+      if (hostOnline) clearTimeout(findTimer);
+      if (phase === 'lobby') refreshLobby();
+      else if (hadHost && !hostOnline) feed('The host disconnected, waiting for them…');
+      else if (!hadHost && hostOnline) send({ t: 'hello', id: myId });
+    }
+    paintPlayers();
   }
 
   function onReady() {
@@ -380,48 +584,27 @@
       }
       refreshLobby();
     } else {
-      if (phase === 'lobby' && !partnerOn) setStatus('Looking for the game…');
+      if (phase === 'lobby' && !hostOnline) setStatus('Looking for the game…');
       clearTimeout(findTimer);
-      findTimer = setTimeout(() => { if (!partnerOn && phase === 'lobby') guestFail('Couldn\'t find game ' + code.toUpperCase() + '. Make sure your partner\'s phone still shows the code, then try again.'); }, 12000);
+      findTimer = setTimeout(() => { if (!hostOnline && phase === 'lobby') guestFail('Couldn\'t find game ' + code.toUpperCase() + '. Make sure the host\'s phone still shows the code, then try again.'); }, 12000);
     }
   }
 
-  function hostInit() {
-    code = Array.from({ length: 4 }, () => 'abcdefghjkmnpqrstuvwxyz'[Math.floor(Math.random() * 23)]).join('');
-    setStatus('Setting up…');
-    connect();
-  }
-
-  function guestInit() {
-    setStatus('Joining the game…');
-    connect();
-  }
   function guestFail(text) { setStatus(text, 'bad'); el.retry.hidden = false; }
+  const others = () => Object.keys(online).filter(id => id !== myId);
 
   function refreshLobby() {
     if (phase !== 'lobby') return;
+    const n = others().length;
     if (role === 'host') {
-      el.start.disabled = !partnerOn;
-      if (partnerOn) setStatus(partnerName() + ' is in. Start when you\'re both ready.', 'ok');
-      else setStatus('Ask your partner to scan this with their phone camera.');
-    } else if (partnerOn) {
+      el.start.disabled = n === 0;
+      if (n) setStatus(n === 1 ? '1 player joined. Start now, or wait for more.' : n + ' players joined. Start now, or wait for more.', 'ok');
+      else setStatus('Ask everyone to scan this with their phone camera.');
+    } else if (hostOnline) {
       el.retry.hidden = true;
-      setStatus('You\'re in. Waiting for ' + partnerName() + ' to start the game.', 'ok');
+      setStatus('You\'re in. Waiting for the host to start the game.', 'ok');
     }
-  }
-
-  function onPartnerBack() {
-    clearTimeout(findTimer);
-    if (phase === 'lobby') refreshLobby();
-    else { feed(partnerName() + ' is back'); paintScores(); }
-  }
-
-  // Phones drop off briefly when the screen locks, so keep the game going and resync when they return.
-  function onPartnerGone() {
-    if (phase === 'lobby') {
-      if (role === 'host') { el.start.disabled = true; setStatus('Waiting for your partner to scan the code.'); }
-      else setStatus('Waiting for the host…');
-    } else feed(partnerName() + ' disconnected, waiting for them…');
+    paintPlayers();
   }
 
   el.retry.addEventListener('click', () => location.reload());
@@ -433,61 +616,99 @@
     } catch (e) {}
   });
 
+  // ---------- players and scores ----------
+  function chip(id, score, bump) {
+    const c = document.createElement('span');
+    c.className = 'chip' + (id === myId ? ' me' : '') + (online[id] || id === myId ? '' : ' off') + (bump ? ' bump' : '');
+    c.style.setProperty('--c', colorOf(id));
+    const dot = document.createElement('i');
+    const nm = document.createElement('span'); nm.textContent = nameOf(id) + (id === myId ? ' (you)' : '');
+    c.append(dot, nm);
+    if (score !== undefined) { const b = document.createElement('b'); b.textContent = score; c.append(b); }
+    return c;
+  }
+  function ranked() {
+    const ids = new Set([...Object.keys(scores), ...Object.keys(online), myId]);
+    return [...ids].sort((a, b) => (scores[b] || 0) - (scores[a] || 0) || nameOf(a).localeCompare(nameOf(b)));
+  }
+  function paintPlayers(bumpId) {
+    if (phase === 'lobby') {
+      const ids = [myId, ...others()];
+      el.whoBox.hidden = ids.length < 2 && role === 'host';
+      el.whoLabel.textContent = 'In the room (' + ids.length + ')';
+      el.who.replaceChildren(...ids.map(id => chip(id)));
+    } else {
+      el.chips.replaceChildren(...ranked().map(id => chip(id, scores[id] || 0, id === bumpId)));
+    }
+  }
+
   // ---------- messages ----------
   function onData(m) {
     if (!m || typeof m !== 'object') return;
+    if (m.names) Object.assign(names, m.names);
     switch (m.t) {
-      case 'miss': if (phase === 'round') feed(partnerName() + ': ' + String(m.text || '').slice(0, 24), true); break;
+      case 'miss': if (phase === 'round' && m.id !== myId) feed(nameOf(m.id) + ': ' + String(m.text || '').slice(0, 24) + ' ✗'); break;
       // host only
-      case 'hello': if (role === 'host' && phase !== 'lobby') sendSync(); break;
-      case 'correct': if (role === 'host' && phase === 'round' && m.i === roundI) endRound('guest'); break;
-      // guest only
-      case 'start': if (role === 'guest') { scores = { host: 0, guest: 0 }; countdown(); } break;
-      case 'round': if (role === 'guest') beginRound(m.i, m.d); break;
-      case 'result': if (role === 'guest') { if (m.i !== roundI || !cur) beginRound(m.i, m.d); showResult(m); } break;
+      case 'hello': if (role === 'host' && phase !== 'lobby') { if (!(m.id in scores)) scores[m.id] = 0; sendSync(); } break;
+      case 'correct': if (role === 'host' && phase === 'round' && m.i === roundI && typeof m.id === 'string') endRound(m.id); break;
+      // guests only
+      case 'start': if (role === 'guest') { scores = m.scores || {}; countdown(); } break;
+      case 'round': if (role === 'guest') beginRound(m.i, m.d, m.s); break;
+      case 'result': if (role === 'guest') { if (m.i !== roundI || curD !== m.d || phase === 'lobby') beginRound(m.i, m.d, m.s); showResult(m); } break;
       case 'end': if (role === 'guest') { scores = m.scores; showEnd(); } break;
       case 'sync': if (role === 'guest') applySync(m); break;
     }
   }
 
   // ---------- game flow ----------
-  function stopTimers() { clearTimeout(roundTimer); clearTimeout(nextTimer); clearTimeout(countTimer); cancelAnimationFrame(raf); }
+  function stopTimers() { clearTimeout(roundTimer); clearTimeout(nextTimer); clearTimeout(countTimer); clearTimeout(claimTimer); cancelAnimationFrame(raf); }
+
+  async function keepAwake() {
+    try { if (navigator.wakeLock && document.visibilityState === 'visible' && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', () => { if (phase !== 'lobby' && phase !== 'end') keepAwake(); });
 
   el.start.addEventListener('click', startGame);
   el.again.addEventListener('click', startGame);
 
-  function sendSync() {             // host: tell a returning guest where the game is
-    send({ t: 'sync', phase, i: roundI, d: order[roundI], elapsed: performance.now() - t0, scores, winner: lastWinner });
-  }
-  function applySync(m) {           // guest
-    scores = m.scores;
-    if (m.phase === 'end') { showEnd(); return; }
-    if (m.phase === 'countdown') { if (phase !== 'countdown') countdown(); return; }
-    if (m.i !== roundI || phase === 'lobby' || phase === 'end' || !cur) beginRound(m.i, m.d, m.elapsed);
-    if (m.phase === 'reveal') showResult({ winner: m.winner, scores: m.scores });
-    else paintScores();
-  }
+  function knownNames() { const o = {}; for (const id of ranked()) o[id] = nameOf(id); return o; }
 
   function startGame() {            // host
-    if (!partnerOn) return;
-    order = PREPPED.map((_, i) => i);
+    if (!others().length) return;
+    order = PICTURES.map((_, i) => i);
     for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
     order = order.slice(0, TOTAL);
-    scores = { host: 0, guest: 0 };
-    send({ t: 'start' });
+    seeds = order.map(() => Math.floor(Math.random() * 1e9));
+    scores = {};
+    for (const id of [myId, ...others()]) scores[id] = 0;
+    send({ t: 'start', scores, names: knownNames() });
     countdown(() => startRound(0));
+  }
+
+  function sendSync() {             // host: tell a (re)joining player where the game is
+    send({ t: 'sync', phase, i: roundI, d: order[roundI], s: seeds[roundI], elapsed: performance.now() - t0, scores, winner: lastWinner, names: knownNames() });
+  }
+  function applySync(m) {           // guest
+    scores = m.scores || {};
+    if (m.phase === 'end') { showEnd(); return; }
+    if (m.phase === 'countdown') { if (phase !== 'countdown') countdown(); return; }
+    if (m.i !== roundI || curD !== m.d || phase === 'lobby' || phase === 'end' || phase === 'countdown') beginRound(m.i, m.d, m.s, m.elapsed);
+    if (m.phase === 'reveal') showResult({ winner: m.winner, scores: m.scores });
+    else paintPlayers();
   }
 
   function countdown(done) {
     stopTimers();
     phase = 'countdown';
     show('game');
-    try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) {}
-    paintScores();
+    keepAwake();
+    paintPlayers();
     el.roundNo.textContent = 'Get ready';
-    el.banner.hidden = true; el.feed.textContent = '';
+    el.roomTag.textContent = 'Room ' + code.toUpperCase();
+    el.banner.hidden = true; feed('');
     el.guess.disabled = true; el.guess.value = '';
-    el.bar.style.transform = 'scaleX(1)';
+    el.bar.style.transform = 'scaleX(1)'; el.timer.classList.remove('low');
+    cur = null; curD = -1;
     ctx.clearRect(0, 0, el.cv.width, el.cv.height);
     let n = 3;
     el.count.hidden = false; el.count.textContent = n;
@@ -500,96 +721,110 @@
   }
 
   function startRound(i) {          // host
-    send({ t: 'round', i, d: order[i] });
-    beginRound(i, order[i]);
+    lastWinner = null;
+    send({ t: 'round', i, d: order[i], s: seeds[i] });
+    beginRound(i, order[i], seeds[i]);
     roundTimer = setTimeout(() => endRound(null), ROUND_MS);
   }
 
-  function beginRound(i, d, elapsed = 0) {
-    clearTimeout(countTimer); cancelAnimationFrame(raf);
-    phase = 'round'; roundI = i; cur = PREPPED[d]; waiting = false;
+  function beginRound(i, d, s, elapsed = 0) {
+    clearTimeout(countTimer); clearTimeout(claimTimer); cancelAnimationFrame(raf);
+    if (!PICTURES[d]) return;
+    phase = 'round'; roundI = i; curD = d; curS = s; cur = prep(PICTURES[d], s || 1); waiting = false;
     t0 = performance.now() - Math.max(0, Math.min(ROUND_MS, elapsed || 0));
     show('game');
     el.count.hidden = true; el.banner.hidden = true;
-    el.roundNo.textContent = (i + 1) + ' / ' + TOTAL;
-    el.feed.textContent = '';
+    el.roundNo.textContent = 'Picture ' + (i + 1) + ' of ' + TOTAL;
+    el.roomTag.textContent = 'Room ' + code.toUpperCase();
+    feed('');
     el.guess.disabled = false; el.guess.value = '';
     el.guess.focus({ preventScroll: true });
+    paintPlayers();
     frame();
   }
 
   function frame() {
     if (phase !== 'round') return;
-    const t = performance.now() - t0;
+    const t = performance.now() - t0, left = 1 - t / ROUND_MS;
     draw(Math.min(1, t / DRAW_MS));
-    el.bar.style.transform = 'scaleX(' + Math.max(0, 1 - t / ROUND_MS) + ')';
+    el.bar.style.transform = 'scaleX(' + Math.max(0, left) + ')';
+    el.timer.classList.toggle('low', left < 0.25);
     raf = requestAnimationFrame(frame);
   }
 
   function endRound(winner) {       // host
     if (phase !== 'round') return;
     clearTimeout(roundTimer);
-    if (winner) scores[winner]++;
+    if (winner) scores[winner] = (scores[winner] || 0) + 1;
     lastWinner = winner;
-    const m = { t: 'result', i: roundI, d: order[roundI], winner, scores };
+    const m = { t: 'result', i: roundI, d: order[roundI], s: seeds[roundI], winner, scores, names: winner ? { [winner]: nameOf(winner) } : undefined };
     send(m);
     showResult(m);
     nextTimer = setTimeout(() => {
       if (roundI + 1 < TOTAL) startRound(roundI + 1);
-      else { send({ t: 'end', scores }); showEnd(); }
+      else { phase = 'end'; send({ t: 'end', scores, names: knownNames() }); showEnd(); }
     }, REVEAL_MS);
   }
 
   function showResult(m) {
     phase = 'reveal';
-    cancelAnimationFrame(raf);
-    scores = m.scores;
+    cancelAnimationFrame(raf); clearTimeout(claimTimer);
+    scores = m.scores || scores;
     draw(1);
     el.guess.disabled = true; el.guess.value = '';
     el.bWord.textContent = cur ? cur.names[0] : '';
-    el.bWho.className = 'who' + (m.winner === role ? ' me' : m.winner ? ' them' : '');
-    el.bWho.textContent = m.winner === role ? 'You got it' : m.winner ? partnerName() + ' got it' : 'Nobody got it';
+    el.bWho.style.setProperty('--c', m.winner ? colorOf(m.winner) : 'var(--muted)');
+    el.bWho.textContent = m.winner === myId ? 'You got it!' : m.winner ? nameOf(m.winner) + ' got it' : 'Nobody got it';
     el.banner.hidden = false;
-    paintScores(m.winner);
+    el.timer.classList.remove('low');
+    paintPlayers(m.winner);
   }
 
   function showEnd() {
     stopTimers();
     phase = 'end';
-    const me = scores[role], them = scores[other];
-    el.endTitle.textContent = me > them ? 'You win!' : me < them ? partnerName() + ' wins!' : 'It\'s a tie!';
-    el.fMe.textContent = me; el.fThem.textContent = them;
-    el.fnMe.textContent = myName(); el.fnThem.textContent = partnerName();
+    const ids = ranked(), top = scores[ids[0]] || 0;
+    const winners = ids.filter(id => (scores[id] || 0) === top);
+    el.endTitle.textContent = top === 0 ? 'Nobody scored!'
+      : winners.length > 1 ? (winners.includes(myId) ? 'You tied for first!' : 'It\'s a tie!')
+      : winners[0] === myId ? 'You win!' : nameOf(winners[0]) + ' wins!';
+    let pos = 0, prev = null;
+    el.rank.replaceChildren(...ids.map((id, k) => {
+      const sc = scores[id] || 0;
+      if (sc !== prev) { pos = k + 1; prev = sc; }
+      const li = document.createElement('li');
+      li.className = id === myId ? 'me' : '';
+      li.style.setProperty('--c', colorOf(id));
+      const a = document.createElement('span'); a.className = 'pos'; a.textContent = pos + '.';
+      const b = document.createElement('span'); b.className = 'nm'; b.textContent = nameOf(id) + (id === myId ? ' (you)' : '');
+      const c = document.createElement('span'); c.className = 'sc'; c.textContent = sc;
+      li.append(a, b, c);
+      return li;
+    }));
     el.again.hidden = role !== 'host';
-    el.endNote.textContent = role === 'host' ? 'Fancy a rematch?' : 'Waiting for ' + partnerName() + ' to start a rematch.';
+    el.endNote.textContent = role === 'host' ? 'Same players, new pictures?' : 'Waiting for the host to start a rematch.';
     show('end');
   }
 
-  function paintScores(bumped) {
-    el.nMe.textContent = myName(); el.nThem.textContent = partnerName();
-    el.sMe.textContent = scores[role]; el.sThem.textContent = scores[other];
-    if (bumped) {
-      const node = bumped === role ? el.plMe : el.plThem;
-      node.classList.remove('bump'); void node.offsetWidth; node.classList.add('bump');
-    }
-  }
-
-  function feed(text, theirs) {
-    el.feed.textContent = text + ' ✗';
-    el.feed.className = theirs ? 'them' : '';
+  // A correct guess from a guest is re-sent until the host answers, in case a message drops.
+  function claim() {
+    if (!waiting || phase !== 'round' || claimTries >= 5) return;
+    claimTries++;
+    send({ t: 'correct', i: roundI, id: myId });
+    claimTimer = setTimeout(claim, 1200);
   }
 
   el.form.addEventListener('submit', e => {
     e.preventDefault();
     const text = el.guess.value.trim();
-    if (phase !== 'round' || waiting || !text) return;
+    if (phase !== 'round' || waiting || !text || !cur) return;
     el.guess.value = '';
     if (isMatch(text, cur.names)) {
-      if (role === 'host') endRound('host');
-      else { waiting = true; send({ t: 'correct', i: roundI }); }
+      if (role === 'host') endRound(myId);
+      else { waiting = true; claimTries = 0; feed('Checking…'); claim(); }
     } else {
-      feed('You: ' + text);
-      send({ t: 'miss', text });
+      feed('You: ' + text + ' ✗');
+      send({ t: 'miss', id: myId, text });
       el.form.classList.remove('shake'); void el.form.offsetWidth; el.form.classList.add('shake');
     }
     el.guess.focus({ preventScroll: true });
@@ -602,40 +837,57 @@
     const dpr = Math.min(3, window.devicePixelRatio || 1);
     el.cv.style.width = el.cv.style.height = size + 'px';
     if (el.cv.width !== Math.round(size * dpr)) { el.cv.width = el.cv.height = Math.round(size * dpr); }
-    if (cur && (phase === 'reveal')) draw(1);
+    if (cur && phase === 'reveal') draw(1);
   }
   new ResizeObserver(() => { if (!el.game.hidden) sizeCanvas(); }).observe(el.board);
 
-  function draw(p) {
-    const s = el.cv.width, k = s / 100;
-    ctx.clearRect(0, 0, s, s);
-    if (!cur) return;
-    ctx.lineWidth = s * 0.014; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1f1d36';
-    let left = cur.total * p, tip = null;
-    for (const st of cur.strokes) {
+  function drawPic(c2, pic, p) {
+    const s = c2.canvas.width, k = s / 100;
+    c2.clearRect(0, 0, s, s);
+    if (!pic) return;
+    c2.lineWidth = s * 0.014; c2.lineCap = 'round'; c2.lineJoin = 'round'; c2.strokeStyle = '#1f1d36';
+    let left = pic.total * p, tip = null;
+    for (const st of pic.strokes) {
       if (left <= 0) break;
-      ctx.beginPath();
-      ctx.moveTo(st.pts[0][0] * k, st.pts[0][1] * k);
+      c2.beginPath();
+      c2.moveTo(st.pts[0][0] * k, st.pts[0][1] * k);
       for (let i = 1; i < st.pts.length; i++) {
         const d = st.seg[i];
-        if (left >= d) { ctx.lineTo(st.pts[i][0] * k, st.pts[i][1] * k); left -= d; tip = st.pts[i]; }
+        if (left >= d) { c2.lineTo(st.pts[i][0] * k, st.pts[i][1] * k); left -= d; tip = st.pts[i]; }
         else {
           const f = left / d, a = st.pts[i - 1], b = st.pts[i];
           tip = [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f];
-          ctx.lineTo(tip[0] * k, tip[1] * k); left = 0; break;
+          c2.lineTo(tip[0] * k, tip[1] * k); left = 0; break;
         }
       }
-      ctx.stroke();
+      c2.stroke();
     }
-    if (p < 1 && tip) { ctx.fillStyle = '#ff6f9c'; ctx.beginPath(); ctx.arc(tip[0] * k, tip[1] * k, s * 0.016, 0, Math.PI * 2); ctx.fill(); }
+    if (p < 1 && tip) { c2.fillStyle = '#ff6f9c'; c2.beginPath(); c2.arc(tip[0] * k, tip[1] * k, s * 0.016, 0, Math.PI * 2); c2.fill(); }
   }
+  const draw = p => drawPic(ctx, cur, p);
 
   // ---------- go ----------
-  if (typeof supabase === 'undefined' || typeof QRCode === 'undefined') {
+  if (params.has('sheet')) {           // picture check sheet for editing the drawings
+    document.getElementById('app').hidden = true;
+    const grid = document.createElement('div'); grid.id = 'sheet';
+    PICTURES.forEach((pic, i) => {
+      const f = document.createElement('figure'), c = document.createElement('canvas');
+      c.width = c.height = 300; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: (i + 1) + '. ' + pic.names[0] }));
+      grid.append(f); drawPic(c.getContext('2d'), prep(pic, i + 7), 1);
+    });
+    document.body.append(grid);
+  } else if (typeof supabase === 'undefined' || typeof QRCode === 'undefined') {
     setStatus('The game couldn\'t load. Check your internet and try again.', 'bad'); el.retry.hidden = false;
-  } else if (role === 'host') hostInit(); else guestInit();
+  } else if (role === 'host') {
+    code = Array.from({ length: 4 }, () => 'abcdefghjkmnpqrstuvwxyz'[Math.floor(Math.random() * 23)]).join('');
+    setStatus('Setting up…');
+    connect();
+  } else {
+    setStatus('Joining the game…');
+    connect();
+  }
 
-  window.__dd = { PICTURES, PREPPED, isMatch, get state() { return { phase, roundI, scores, role, answer: cur && cur.names[0] }; } };
+  window.__dd = { PICTURES, isMatch, prep, get state() { return { phase, roundI, scores, role, myId, answer: cur && cur.names[0], online: Object.keys(online).length }; } };
 })();
 </script>
 </body>
