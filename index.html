@@ -33,7 +33,7 @@
     padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
     display: flex; justify-content: center;
   }
-  .screen { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .screen { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
 
   h1 { margin: 0; font-size: clamp(40px, 13vw, 60px); line-height: .92; font-weight: 700; letter-spacing: -.01em; }
   h1 span { color: var(--pop); }
@@ -60,7 +60,7 @@
   button:focus-visible, input:focus-visible { outline: 3px solid var(--pop); outline-offset: 2px; }
 
   /* Lobby: scrolls on short screens; auto margins centre it without clipping the top. */
-  #lobby { overflow-y: auto; }
+  #lobby { overflow-y: auto; gap: 12px; }
   #lobby > :first-child { margin-top: auto; }
   #lobby > :last-child { margin-bottom: auto; }
   .field { display: flex; flex-direction: column; gap: 6px; }
@@ -72,11 +72,22 @@
   #status { margin: 0; min-height: 1.4em; font-size: 17px; text-align: center; }
   #status.ok { color: var(--good); }
   #status.bad { color: var(--bad); }
-  #whoBox { display: flex; flex-direction: column; gap: 6px; }
+  #whoBox, #modeBox { display: flex; flex-direction: column; gap: 6px; }
+  #modeNote { margin: 0; text-align: center; color: var(--muted); }
+  #modeNote b { color: var(--text); }
+
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .seg button {
+    display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left;
+    background: var(--bg-2); color: var(--text); box-shadow: none; border: 2px solid transparent; font-size: 17px; padding: 10px 12px;
+  }
+  .seg button small { font-weight: 400; font-size: 13px; color: var(--muted); }
+  .seg button.on { border-color: var(--pop); }
+  .seg button:active { transform: none; }
 
   /* Player chips (lobby list and in-game scoreboard) */
   .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .chips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; flex: none; }
   .chips.scroll::-webkit-scrollbar { display: none; }
   .chip {
     flex: none; display: inline-flex; align-items: center; gap: 6px;
@@ -87,33 +98,58 @@
   .chip b { font-variant-numeric: tabular-nums; color: var(--c); }
   .chip.me { border-color: var(--c); }
   .chip.off { opacity: .45; }
+  .chip.got { background: color-mix(in srgb, var(--good) 22%, var(--bg-2)); }
   .chip.bump b { animation: bump .5s; }
   @keyframes bump { 40% { transform: scale(1.6); } }
 
   /* Game */
-  .hudtop { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hudtop { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
+  .hudtop span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .hudtop span:last-child { flex: none; }
   .timer { height: 8px; border-radius: 8px; background: var(--bg-2); overflow: hidden; flex: none; }
   .timer i { display: block; height: 100%; width: 100%; background: var(--pop); transform-origin: left; }
   .timer.low i { background: var(--bad); }
+  #hint { flex: none; text-align: center; font-size: 22px; font-weight: 600; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #hint small { font-size: 14px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
 
   .board { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; }
   canvas { background: var(--paper); border-radius: 20px; box-shadow: 0 6px 0 rgba(0,0,0,.25); display: block; }
+  canvas.pen { touch-action: none; cursor: crosshair; }
   #banner, #count {
     position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none;
   }
   #banner { justify-content: flex-end; padding-bottom: 6%; }
   #banner .word { background: var(--ink); color: var(--pop); font-size: clamp(24px, 8vw, 38px); font-weight: 700; padding: 6px 18px; border-radius: 14px; text-transform: capitalize; }
-  #banner .who { margin-top: 6px; background: var(--ink); color: var(--c, var(--text)); padding: 4px 12px; border-radius: 10px; font-size: 16px; }
+  #banner .who { margin: 6px 12px 0; background: var(--ink); color: var(--c, var(--text)); padding: 4px 12px; border-radius: 10px; font-size: 16px; }
   #count { font-size: 120px; font-weight: 700; color: var(--pop); text-shadow: 0 6px 0 rgba(0,0,0,.3); }
+  #choose {
+    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    background: rgba(29, 27, 58, .9); border-radius: 20px; padding: 16px; text-align: center;
+  }
+  #chooseTitle { margin: 0; font-size: 22px; font-weight: 600; text-wrap: balance; }
+  #chooseBtns { display: flex; flex-direction: column; gap: 10px; width: min(260px, 100%); }
+  #chooseBtns button { text-transform: capitalize; }
 
-  #feed { height: 22px; flex: none; font-size: 15px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+  #feed { height: 58px; flex: none; display: flex; flex-direction: column; justify-content: flex-end; font-size: 14px; color: var(--muted); text-align: center; }
+  #feed div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #feed .good { color: var(--good); font-weight: 600; }
+  #feed .close { color: var(--pop); font-weight: 600; }
   #guessForm { display: flex; gap: 8px; flex: none; }
   #guessForm input { flex: 1; background: var(--paper); color: var(--ink); }
   #guessForm input::placeholder { color: #8d89a8; }
   #guessForm input:disabled { opacity: .55; }
   #guessForm button { flex: none; }
-  .shake { animation: shake .3s; }
-  @keyframes shake { 25% { transform: translateX(-7px); } 75% { transform: translateX(7px); } }
+
+  #tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; flex: none; }
+  #tools button { box-shadow: none; padding: 0; }
+  #tools button:active { transform: scale(.92); }
+  .sw { width: 32px; height: 32px; border-radius: 50%; background: var(--c); border: 3px solid var(--bg-2); }
+  .sw.eraser { background: linear-gradient(135deg, var(--paper) 44%, var(--bad) 44% 56%, var(--paper) 56%); }
+  .sw.on { border-color: var(--pop); }
+  .sz { width: 38px; height: 32px; border-radius: 10px; background: var(--bg-2); display: grid; place-items: center; border: 2px solid transparent; }
+  .sz i { display: block; width: var(--d); height: var(--d); border-radius: 50%; background: var(--text); }
+  .sz.on { border-color: var(--pop); }
+  .tbtn { font-size: 15px !important; padding: 6px 12px !important; border-radius: 10px; background: var(--bg-2); color: var(--text); }
 
   /* End */
   #end { justify-content: center; text-align: center; gap: 18px; overflow-y: auto; }
@@ -140,7 +176,7 @@
 
   <section id="lobby" class="screen">
     <h1>Doodle<br><span>Duel</span></h1>
-    <p class="tag">The robot scribbles 20 tough pictures in 4 seconds each. First to guess gets the point; if nobody gets it, nobody scores.</p>
+    <p class="tag">Guess the robot's scribbles, or take turns drawing for each other. Faster guesses score more.</p>
     <div class="field">
       <label for="name">Your name</label>
       <input id="name" maxlength="12" autocomplete="off" placeholder="Type your name">
@@ -150,6 +186,14 @@
       <p id="codeLine">Room <b id="code"></b></p>
       <button id="share" class="ghost" type="button">Send the link instead</button>
     </div>
+    <div id="modeBox" hidden>
+      <span class="label">Game mode</span>
+      <div class="seg">
+        <button type="button" id="modeRobot" class="on">Robot draws<small>Guess its tough scribbles</small></button>
+        <button type="button" id="modeDraw">You draw<small>Take turns drawing</small></button>
+      </div>
+    </div>
+    <p id="modeNote" hidden></p>
     <div id="whoBox" hidden>
       <span class="label" id="whoLabel">Players</span>
       <div class="chips" id="who"></div>
@@ -160,19 +204,22 @@
   </section>
 
   <section id="game" class="screen" hidden>
-    <div class="hudtop"><span id="roundNo">1 / 20</span><span id="roomTag"></span></div>
+    <div class="hudtop"><span id="roundNo"></span><span id="roomTag"></span></div>
     <div class="chips scroll" id="board-chips"></div>
     <div class="timer" id="timer"><i id="bar"></i></div>
+    <div id="hint" hidden></div>
     <div class="board" id="board">
-      <canvas id="cv" width="300" height="300" aria-label="The picture being drawn"></canvas>
+      <canvas id="cv" width="300" height="300" aria-label="The drawing"></canvas>
       <div id="banner" hidden><div class="word" id="bWord"></div><div class="who" id="bWho"></div></div>
       <div id="count" hidden></div>
+      <div id="choose" hidden><p id="chooseTitle"></p><div id="chooseBtns"></div></div>
     </div>
     <div id="feed" aria-live="polite"></div>
     <form id="guessForm" autocomplete="off">
       <input id="guess" placeholder="What is it?" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" maxlength="24" aria-label="Your guess">
       <button type="submit">Guess</button>
     </form>
+    <div id="tools" hidden></div>
   </section>
 
   <section id="end" class="screen" hidden>
@@ -191,11 +238,14 @@
   'use strict';
 
   // ---------- settings ----------
-  const TOTAL = 20;          // pictures per game
-  const ROUND_MS = 9000;     // time to guess each picture; nobody scores if it runs out
-  const DRAW_MS = 4000;      // the robot finishes each drawing in 4 seconds
-  const REVEAL_MS = 3000;    // pause on the answer
-  const PREFIX = 'doodleduel-v3-';
+  const TOTAL = 20;            // pictures per robot game
+  const ROUND_MS = 14000;      // robot mode: time to guess each picture
+  const DRAW_MS = 4000;        // robot mode: the robot finishes each drawing in 4 seconds
+  const TURN_MS = 80000;       // draw mode: time for each drawing turn
+  const CHOOSE_MS = 12000;     // draw mode: time to pick a word
+  const REVEAL_MS = 3500;      // pause on the answer
+  const POINTS = [3, 2];       // 1st correct guess 3, 2nd 2, everyone after 1
+  const PREFIX = 'doodleduel-v4-';
   // Supabase Realtime relays messages between phones (publishable key: safe to ship in the page).
   const SB_URL = 'https://popmeskdinlnlikzylyt.supabase.co';
   const SB_KEY = 'sb_publishable_7LN22XE2uyl7vjv_nKglow_Uw6-rTWN';
@@ -454,28 +504,47 @@
     return { names: pic.names, strokes, total };
   }
 
+  // ---------- words for draw mode ----------
+  const WORDS = ('apple,banana,pizza,rocket,castle,dragon,guitar,rainbow,volcano,penguin,snowman,giraffe,octopus,lighthouse,umbrella,cactus,mermaid,unicorn,' +
+    'robot,pirate,treasure,island,tornado,skeleton,vampire,ghost,wizard,crown,sword,shield,bicycle,helicopter,submarine,train,airplane,parachute,' +
+    'hot air balloon,ferris wheel,roller coaster,tent,campfire,igloo,pyramid,windmill,bridge,skyscraper,lamp,toothbrush,scissors,glasses,headphones,' +
+    'camera,telescope,magnet,battery,lightbulb,key,ladder,hammer,anchor,compass,clock,hourglass,candle,birthday cake,cupcake,donut,ice cream,popcorn,' +
+    'hamburger,hot dog,sushi,taco,cheese,egg,carrot,mushroom,pineapple,watermelon,cherry,strawberry,grapes,cookie,sandwich,spaghetti,teapot,fork,' +
+    'frying pan,fridge,toilet,bathtub,bed,sofa,chair,door,fence,mailbox,snail,spider,butterfly,bee,ladybug,frog,turtle,snake,crocodile,shark,whale,' +
+    'dolphin,jellyfish,crab,starfish,seahorse,owl,parrot,flamingo,peacock,bat,rabbit,kangaroo,elephant,lion,zebra,monkey,panda,koala,camel,horse,' +
+    'cow,pig,sheep,chicken,duck,dinosaur,beard,moustache,tooth,brain,skull,hand,foot,nose,eyeball,sun,moon,star,planet,cloud,lightning,snowflake,' +
+    'palm tree,flower,rose,leaf,mountain,waterfall,beach,football,basketball,skateboard,surfboard,trophy,drum,piano,trumpet,violin,microphone,' +
+    'television,computer,phone,backpack,balloon,kite,sock,shoe,hat,glove,dress,bow tie,ring,diamond,money,gift,letter,book,pencil,paintbrush').split(',');
+
   // ---------- guess checking ----------
-  const norm = s => s.toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
-  function lev(a, b) {
-    if (Math.abs(a.length - b.length) > 1) return 2;
-    let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  const norm = s => String(s).toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
+  function dist(a, b) {
+    const row = Array.from({ length: b.length + 1 }, (_, j) => j);
     for (let i = 1; i <= a.length; i++) {
-      const cur = [i];
-      for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-      prev = cur;
+      let diag = row[0]; row[0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        const keep = row[j];
+        row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diag + (a[i - 1] === b[j - 1] ? 0 : 1));
+        diag = keep;
+      }
     }
-    return prev[b.length];
+    return row[b.length];
   }
+  const squash = s => norm(s).replace(/^(a|an|the) /, '').replace(/ /g, '');
   function isMatch(guess, names) {
     const g = norm(guess).replace(/^(a|an|the) /, '');
     if (!g) return false;
     const joined = g.replace(/ /g, ''), words = g.split(' ');
     return names.some(n => {
       const nj = n.replace(/ /g, '');
-      if (joined === nj || joined === nj + 's' || joined + 's' === nj) return true;
+      if (joined === nj || joined === nj + 's' || joined + 's' === nj || joined === nj + 'es') return true;
       if (words.includes(nj)) return true;
-      return nj.length >= 5 && lev(joined, nj) <= 1;
+      return nj.length >= 5 && dist(joined, nj) <= 1;
     });
+  }
+  function isClose(guess, names) {
+    const j = squash(guess);
+    return j.length >= 3 && names.some(n => { const nj = n.replace(/ /g, ''); return nj.length >= 4 && dist(j, nj) <= 2; });
   }
 
   // ---------- elements ----------
@@ -483,11 +552,12 @@
   const el = {
     lobby: $('lobby'), game: $('game'), end: $('end'),
     name: $('name'), hostBox: $('hostBox'), qr: $('qr'), code: $('code'), share: $('share'),
+    modeBox: $('modeBox'), modeRobot: $('modeRobot'), modeDraw: $('modeDraw'), modeNote: $('modeNote'),
     whoBox: $('whoBox'), whoLabel: $('whoLabel'), who: $('who'),
     status: $('status'), start: $('start'), retry: $('retry'),
-    roundNo: $('roundNo'), roomTag: $('roomTag'), chips: $('board-chips'), timer: $('timer'), bar: $('bar'), board: $('board'), cv: $('cv'),
-    banner: $('banner'), bWord: $('bWord'), bWho: $('bWho'), count: $('count'),
-    feed: $('feed'), form: $('guessForm'), guess: $('guess'),
+    roundNo: $('roundNo'), roomTag: $('roomTag'), chips: $('board-chips'), timer: $('timer'), bar: $('bar'), hint: $('hint'), board: $('board'), cv: $('cv'),
+    banner: $('banner'), bWord: $('bWord'), bWho: $('bWho'), count: $('count'), choose: $('choose'), chooseTitle: $('chooseTitle'), chooseBtns: $('chooseBtns'),
+    feed: $('feed'), form: $('guessForm'), guess: $('guess'), tools: $('tools'),
     endTitle: $('endTitle'), rank: $('rank'), endNote: $('endNote'), again: $('again'),
   };
   const ctx = el.cv.getContext('2d');
@@ -506,6 +576,7 @@
   const params = new URLSearchParams(location.search);
   const joinCode = (params.get('room') || '').toLowerCase().replace(/[^a-z]/g, '').slice(0, 6);
   const role = joinCode ? 'guest' : 'host';
+  const isHost = role === 'host';
   const store = {
     get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
@@ -519,47 +590,59 @@
   })();
 
   let ch = null, subscribed = false, readyOnce = false, findTimer = 0, code = joinCode;
-  let online = {};                 // id -> { name, host } for everyone connected right now
+  let online = {};                 // id -> { name, host, mode } for everyone connected right now
   let names = {};                  // id -> last known name, kept after someone leaves
   let hostOnline = false;
-  let phase = 'lobby';             // lobby | countdown | round | reveal | end
+  let phase = 'lobby';             // lobby | countdown | choosing | round | reveal | end
+  let mode = 'robot';              // robot | draw
+  let total = TOTAL, roundMs = ROUND_MS;
   let scores = {};                 // id -> points (the host owns the truth)
-  let order = [], seeds = [], roundI = 0, cur = null, curD = -1, curS = 0, t0 = 0, raf = 0;
-  let waiting = false, claimTries = 0, claimTimer = 0, lastWinner = null;
-  let roundTimer = 0, nextTimer = 0, countTimer = 0, wake = null;
+  let order = [], seeds = [], drawOrder = [];
+  let roundI = 0, cur = null, curD = -1, curS = 0, t0 = 0, raf = 0;
+  let drawer = null, word = '', mask = '', options = [], pendingWord = '';
+  let gots = [], ink = [], iGot = false;
+  let roundTimer = 0, nextTimer = 0, countTimer = 0, chooseTimer = 0, hintTimers = [], wake = null;
 
   let savedName = '';
   try { savedName = localStorage.getItem('dd-name') || ''; } catch (e) {}
   el.name.value = savedName;
-  const myName = () => el.name.value.trim() || (role === 'host' ? 'Host' : 'Player');
+  const myName = () => el.name.value.trim() || (isHost ? 'Host' : 'Player');
   const nameOf = id => id === myId ? myName() : (online[id] && online[id].name) || names[id] || 'Player';
+  const youOr = id => id === myId ? 'You' : nameOf(id);
   // Colours follow the sorted player ids, so every phone shows the same colour for the same player and nobody shares one (up to 8).
   const colorOf = id => {
     const ids = [...new Set([...Object.keys(scores), ...Object.keys(online), myId, id])].sort();
     return COLORS[ids.indexOf(id) % COLORS.length];
   };
+  const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
   function show(which) {
     for (const s of ['lobby', 'game', 'end']) el[s].hidden = (s !== which);
     if (which === 'game') sizeCanvas();
   }
   function setStatus(text, cls) { el.status.textContent = text; el.status.className = cls || ''; }
-  function feed(text) { el.feed.textContent = text; }
+  const feedLines = [];
+  function feed(text, cls) {
+    if (!text) feedLines.length = 0;
+    else { feedLines.push({ text, cls }); if (feedLines.length > 3) feedLines.shift(); }
+    el.feed.replaceChildren(...feedLines.map(l => { const d = document.createElement('div'); d.textContent = l.text; if (l.cls) d.className = l.cls; return d; }));
+  }
   const send = m => { if (ch && subscribed) ch.send({ type: 'broadcast', event: 'm', payload: m }); };
 
   // ---------- connection ----------
+  function trackMe() { if (ch && subscribed) ch.track({ name: myName(), host: isHost, mode: isHost ? mode : undefined }); }
   let nameTimer = 0;
   el.name.addEventListener('input', () => {
     try { localStorage.setItem('dd-name', el.name.value.trim()); } catch (e) {}
     paintPlayers();
     clearTimeout(nameTimer);       // tell the others once typing pauses, not on every key
-    nameTimer = setTimeout(() => { if (ch && subscribed) ch.track({ name: myName(), host: role === 'host' }); }, 400);
+    nameTimer = setTimeout(trackMe, 400);
   });
 
   function joinUrl() { return location.origin + location.pathname + '?room=' + code; }
 
   function connect() {
-    const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 20 } } });
+    const sb = supabase.createClient(SB_URL, SB_KEY, { auth: { persistSession: false }, realtime: { params: { eventsPerSecond: 40 } } });
     ch = sb.channel(PREFIX + code, { config: { broadcast: { self: false }, presence: { key: myId } } });
     ch.on('broadcast', { event: 'm' }, ({ payload }) => onData(payload));
     ch.on('presence', { event: 'sync' }, onPresence);
@@ -567,8 +650,8 @@
       if (status === 'SUBSCRIBED') {
         subscribed = true;
         el.retry.hidden = true;
-        try { await ch.track({ name: myName(), host: role === 'host' }); } catch (e) {}
-        if (role === 'guest') send({ t: 'hello', id: myId });   // the host replies with the game state
+        try { await ch.track({ name: myName(), host: isHost, mode: isHost ? mode : undefined }); } catch (e) {}
+        if (!isHost) send({ t: 'hello', id: myId });   // the host replies with the game state
         onReady();
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         subscribed = false;
@@ -583,7 +666,7 @@
     for (const id in st) {
       const metas = st[id]; if (!metas.length) continue;
       const m = metas[metas.length - 1];
-      next[id] = { name: String(m.name || 'Player').slice(0, 12), host: !!m.host };
+      next[id] = { name: String(m.name || 'Player').slice(0, 12), host: !!m.host, mode: m.mode };
       names[id] = next[id].name;
     }
     if (phase !== 'lobby' && phase !== 'end') {
@@ -592,11 +675,15 @@
     }
     online = next;
     const hadHost = hostOnline;
-    hostOnline = Object.values(online).some(p => p.host);
-    if (role === 'host') {
+    const host = Object.values(online).find(p => p.host);
+    hostOnline = !!host;
+    if (isHost) {
       for (const id in online) if (phase !== 'lobby' && !(id in scores)) scores[id] = 0;
+      if (mode === 'draw' && (phase === 'choosing' || phase === 'round') && drawer && !online[drawer]) { feed(nameOf(drawer) + ' left, skipping their turn'); endRound(); }
+      else checkAllGot();
       refreshLobby();
     } else {
+      if (host && host.mode && phase === 'lobby') mode = host.mode;
       if (hostOnline) clearTimeout(findTimer);
       if (phase === 'lobby') refreshLobby();
       else if (hadHost && !hostOnline) feed('The host disconnected, waiting for them…');
@@ -606,10 +693,10 @@
   }
 
   function onReady() {
-    if (role === 'host') {
+    if (isHost) {
       if (!readyOnce) {
         readyOnce = true;
-        el.hostBox.hidden = false; el.start.hidden = false;
+        el.hostBox.hidden = false; el.start.hidden = false; el.modeBox.hidden = false;
         el.code.textContent = code.toUpperCase();
         el.qr.innerHTML = '';
         new QRCode(el.qr, { text: joinUrl(), width: 340, height: 340, correctLevel: QRCode.CorrectLevel.M });
@@ -624,20 +711,28 @@
 
   function guestFail(text) { setStatus(text, 'bad'); el.retry.hidden = false; }
   const others = () => Object.keys(online).filter(id => id !== myId);
+  const MODE_TEXT = { robot: 'Robot draws (guess its scribbles)', draw: 'You draw (take turns drawing)' };
 
   function refreshLobby() {
     if (phase !== 'lobby') return;
     const n = others().length;
-    if (role === 'host') {
+    if (isHost) {
       el.start.disabled = n === 0;
+      el.modeRobot.classList.toggle('on', mode === 'robot');
+      el.modeDraw.classList.toggle('on', mode === 'draw');
       if (n) setStatus(n === 1 ? '1 player joined. Start now, or wait for more.' : n + ' players joined. Start now, or wait for more.', 'ok');
       else setStatus('Ask everyone to scan this with their phone camera.');
     } else if (hostOnline) {
       el.retry.hidden = true;
+      el.modeNote.hidden = false;
+      el.modeNote.replaceChildren('Game mode: ', Object.assign(document.createElement('b'), { textContent: MODE_TEXT[mode] || MODE_TEXT.robot }));
       setStatus('You\'re in. Waiting for the host to start the game.', 'ok');
     }
     paintPlayers();
   }
+  function setMode(m) { if (!isHost || phase !== 'lobby') return; mode = m; trackMe(); refreshLobby(); }
+  el.modeRobot.addEventListener('click', () => setMode('robot'));
+  el.modeDraw.addEventListener('click', () => setMode('draw'));
 
   el.retry.addEventListener('click', () => location.reload());
   el.share.addEventListener('click', async () => {
@@ -651,10 +746,12 @@
   // ---------- players and scores ----------
   function chip(id, score, bump) {
     const c = document.createElement('span');
-    c.className = 'chip' + (id === myId ? ' me' : '') + (online[id] || id === myId ? '' : ' off') + (bump ? ' bump' : '');
+    const got = (phase === 'round' || phase === 'reveal') && gots.some(g => g.id === id);
+    c.className = 'chip' + (id === myId ? ' me' : '') + (online[id] || id === myId ? '' : ' off') + (bump ? ' bump' : '') + (got ? ' got' : '');
     c.style.setProperty('--c', colorOf(id));
     const dot = document.createElement('i');
-    const nm = document.createElement('span'); nm.textContent = nameOf(id) + (id === myId ? ' (you)' : '');
+    const isDrawing = mode === 'draw' && id === drawer && (phase === 'choosing' || phase === 'round');
+    const nm = document.createElement('span'); nm.textContent = nameOf(id) + (id === myId ? ' (you)' : '') + (isDrawing ? ' ✎' : '') + (got ? ' ✓' : '');
     c.append(dot, nm);
     if (score !== undefined) { const b = document.createElement('b'); b.textContent = score; c.append(b); }
     return c;
@@ -663,70 +760,90 @@
     const ids = new Set([...Object.keys(scores), ...Object.keys(online), myId]);
     return [...ids].sort((a, b) => (scores[b] || 0) - (scores[a] || 0) || nameOf(a).localeCompare(nameOf(b)));
   }
-  function paintPlayers(bumpId) {
+  function paintPlayers(bump) {
+    const bumps = new Set([].concat(bump || []));
     if (phase === 'lobby') {
       const ids = [myId, ...others()];
-      el.whoBox.hidden = ids.length < 2 && role === 'host';
+      el.whoBox.hidden = ids.length < 2 && isHost;
       el.whoLabel.textContent = 'In the room (' + ids.length + ')';
       el.who.replaceChildren(...ids.map(id => chip(id)));
     } else {
-      el.chips.replaceChildren(...ranked().map(id => chip(id, scores[id] || 0, id === bumpId)));
+      el.chips.replaceChildren(...ranked().map(id => chip(id, scores[id] || 0, bumps.has(id))));
     }
   }
+  function knownNames() { const o = {}; for (const id of ranked()) o[id] = nameOf(id); return o; }
 
   // ---------- messages ----------
   function onData(m) {
     if (!m || typeof m !== 'object') return;
     if (m.names) Object.assign(names, m.names);
     switch (m.t) {
-      case 'miss': if (phase === 'round' && m.id !== myId) feed(nameOf(m.id) + ': ' + String(m.text || '').slice(0, 24) + ' ✗'); break;
       // host only
-      case 'hello': if (role === 'host' && phase !== 'lobby') { if (!(m.id in scores)) scores[m.id] = 0; sendSync(); } break;
-      case 'correct': if (role === 'host' && phase === 'round' && m.i === roundI && typeof m.id === 'string') endRound(m.id); break;
+      case 'hello': if (isHost && phase !== 'lobby') { if (!(m.id in scores)) scores[m.id] = 0; sendSync(m.id); } break;
+      case 'guess': if (isHost && m.i === roundI && typeof m.id === 'string') judge(m.id, String(m.text || '').slice(0, 24)); break;
+      case 'chose': if (isHost && m.id === drawer) hostChose(m.i, m.k); break;
+      // everyone
+      case 'ink': if (m.i === roundI && mode === 'draw' && drawer !== myId && Array.isArray(m.ops)) applyOps(m.ops); break;
+      case 'chat': if (m.id !== myId && phase === 'round' && m.i === roundI) feed(nameOf(m.id) + ': ' + String(m.text || '').slice(0, 24)); break;
+      case 'close': if (m.id === myId && phase === 'round') feed('So close!', 'close'); break;
+      case 'got': if (!isHost) onGot(m); break;
       // guests only
-      case 'start': if (role === 'guest') { scores = m.scores || {}; countdown(); } break;
-      case 'round': if (role === 'guest') beginRound(m.i, m.d, m.s); break;
-      case 'result': if (role === 'guest') { if (m.i !== roundI || curD !== m.d || phase === 'lobby') beginRound(m.i, m.d, m.s); showResult(m); } break;
-      case 'end': if (role === 'guest') { scores = m.scores; showEnd(); } break;
-      case 'sync': if (role === 'guest') applySync(m); break;
+      case 'hint': if (!isHost && m.i === roundI) { mask = m.mask; paintHint(); } break;
+      case 'start': if (!isHost) { mode = m.mode || 'robot'; total = m.total || TOTAL; scores = m.scores || {}; countdown(); } break;
+      case 'round': if (!isHost) beginRobot(m.i, m.d, m.s); break;
+      case 'pick': if (!isHost) { total = m.total || total; beginChoosing(m.i, m.drawer, m.options); } break;
+      case 'turn': if (!isHost) beginDrawTurn(m.i, m.drawer, m.mask, null); break;
+      case 'result': if (!isHost) showResult(m); break;
+      case 'end': if (!isHost) { scores = m.scores || scores; showEnd(); } break;
+      case 'sync': if (!isHost && m.for === myId) applySync(m); break;
     }
   }
 
-  // ---------- game flow ----------
-  function stopTimers() { clearTimeout(roundTimer); clearTimeout(nextTimer); clearTimeout(countTimer); clearTimeout(claimTimer); cancelAnimationFrame(raf); }
+  // ---------- timers and screens ----------
+  function stopTimers() {
+    clearTimeout(roundTimer); clearTimeout(nextTimer); clearTimeout(countTimer); clearTimeout(chooseTimer);
+    hintTimers.forEach(clearTimeout); hintTimers = [];
+    cancelAnimationFrame(raf);
+  }
 
   async function keepAwake() {
     try { if (navigator.wakeLock && document.visibilityState === 'visible' && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) {}
   }
   document.addEventListener('visibilitychange', () => { if (phase !== 'lobby' && phase !== 'end') keepAwake(); });
 
-  el.start.addEventListener('click', startGame);
-  el.again.addEventListener('click', startGame);
-
-  function knownNames() { const o = {}; for (const id of ranked()) o[id] = nameOf(id); return o; }
-
-  function startGame() {            // host
-    if (!others().length) return;
-    order = PICTURES.map((_, i) => i);
-    for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
-    order = order.slice(0, TOTAL);
-    seeds = order.map(() => Math.floor(Math.random() * 1e9));
-    scores = {};
-    for (const id of [myId, ...others()]) scores[id] = 0;
-    send({ t: 'start', scores, names: knownNames() });
-    countdown(() => startRound(0));
+  function setRound(i) {
+    roundI = i; gots = []; iGot = false; feed('');
+    el.banner.hidden = true; el.count.hidden = true; el.choose.hidden = true;
   }
-
-  function sendSync() {             // host: tell a (re)joining player where the game is
-    send({ t: 'sync', phase, i: roundI, d: order[roundI], s: seeds[roundI], elapsed: performance.now() - t0, scores, winner: lastWinner, names: knownNames() });
+  function startClock(ms, elapsed) {
+    roundMs = ms; t0 = performance.now() - Math.max(0, Math.min(ms, elapsed || 0));
+    cancelAnimationFrame(raf); frame();
   }
-  function applySync(m) {           // guest
-    scores = m.scores || {};
-    if (m.phase === 'end') { showEnd(); return; }
-    if (m.phase === 'countdown') { if (phase !== 'countdown') countdown(); return; }
-    if (m.i !== roundI || curD !== m.d || phase === 'lobby' || phase === 'end' || phase === 'countdown') beginRound(m.i, m.d, m.s, m.elapsed);
-    if (m.phase === 'reveal') showResult({ winner: m.winner, scores: m.scores });
-    else paintPlayers();
+  function frame() {
+    const t = performance.now() - t0, left = 1 - t / roundMs;
+    if (phase === 'round' && mode === 'robot') draw(Math.min(1, t / DRAW_MS));
+    el.bar.style.transform = 'scaleX(' + Math.max(0, left) + ')';
+    el.timer.classList.toggle('low', left < 0.25 && phase === 'round');
+    if (phase === 'round' || phase === 'choosing') raf = requestAnimationFrame(frame);
+  }
+  function setGuessing(on, placeholder) {
+    el.form.hidden = false; el.tools.hidden = true; el.cv.classList.remove('pen');
+    el.guess.disabled = !on; el.guess.value = on ? el.guess.value : '';
+    el.guess.placeholder = placeholder || 'What is it?';
+    if (on) el.guess.focus({ preventScroll: true });
+  }
+  function header() {
+    if (phase === 'countdown') el.roundNo.textContent = 'Get ready';
+    else if (mode === 'robot') el.roundNo.textContent = 'Picture ' + (roundI + 1) + ' of ' + total;
+    else el.roundNo.textContent = 'Turn ' + (roundI + 1) + ' of ' + total + ' · ' + (drawer === myId ? 'your turn to draw' : nameOf(drawer) + ' is drawing');
+    el.roomTag.textContent = 'Room ' + code.toUpperCase();
+  }
+  function paintHint() {
+    el.hint.hidden = mode !== 'draw' || phase !== 'round';
+    if (el.hint.hidden) return;
+    if (drawer === myId) { el.hint.replaceChildren('Draw: ' + word); return; }
+    const letters = mask.replace(/ /g, '').length;
+    el.hint.replaceChildren(mask.split('').map(c => c === ' ' ? ' ' : c).join(' ') + ' ', Object.assign(document.createElement('small'), { textContent: '(' + letters + ' letters)' }));
   }
 
   function countdown(done) {
@@ -734,13 +851,11 @@
     phase = 'countdown';
     show('game');
     keepAwake();
-    paintPlayers();
-    el.roundNo.textContent = 'Get ready';
-    el.roomTag.textContent = 'Room ' + code.toUpperCase();
-    el.banner.hidden = true; feed('');
-    el.guess.disabled = true; el.guess.value = '';
+    paintPlayers(); header();
+    el.banner.hidden = true; el.choose.hidden = true; el.hint.hidden = true; feed('');
+    setGuessing(false, 'Get ready…');
     el.bar.style.transform = 'scaleX(1)'; el.timer.classList.remove('low');
-    cur = null; curD = -1;
+    cur = null; curD = -1; ink = []; drawer = null;
     ctx.clearRect(0, 0, el.cv.width, el.cv.height);
     let n = 3;
     el.count.hidden = false; el.count.textContent = n;
@@ -752,64 +867,80 @@
     countTimer = setTimeout(tick, 1000);
   }
 
-  function startRound(i) {          // host
-    lastWinner = null;
-    send({ t: 'round', i, d: order[i], s: seeds[i] });
-    beginRound(i, order[i], seeds[i]);
-    roundTimer = setTimeout(() => endRound(null), ROUND_MS);
-  }
-
-  function beginRound(i, d, s, elapsed = 0) {
-    clearTimeout(countTimer); clearTimeout(claimTimer); cancelAnimationFrame(raf);
+  // Robot mode: a picture animates in, everyone guesses.
+  function beginRobot(i, d, s, elapsed) {
     if (!PICTURES[d]) return;
-    phase = 'round'; roundI = i; curD = d; curS = s; cur = prep(PICTURES[d], s || 1); waiting = false;
-    t0 = performance.now() - Math.max(0, Math.min(ROUND_MS, elapsed || 0));
-    show('game');
-    el.count.hidden = true; el.banner.hidden = true;
-    el.roundNo.textContent = 'Picture ' + (i + 1) + ' of ' + TOTAL;
-    el.roomTag.textContent = 'Room ' + code.toUpperCase();
-    feed('');
-    el.guess.disabled = false; el.guess.value = '';
-    el.guess.focus({ preventScroll: true });
-    paintPlayers();
-    frame();
+    stopTimers(); show('game'); setRound(i);
+    mode = 'robot'; phase = 'round'; curD = d; curS = s; cur = prep(PICTURES[d], s || 1); drawer = null;
+    header(); paintHint(); paintPlayers(); setGuessing(true);
+    startClock(ROUND_MS, elapsed);
   }
 
-  function frame() {
-    if (phase !== 'round') return;
-    const t = performance.now() - t0, left = 1 - t / ROUND_MS;
-    draw(Math.min(1, t / DRAW_MS));
-    el.bar.style.transform = 'scaleX(' + Math.max(0, left) + ')';
-    el.timer.classList.toggle('low', left < 0.25);
-    raf = requestAnimationFrame(frame);
+  // Draw mode, step 1: the drawer picks one of three words.
+  function beginChoosing(i, who, opts, elapsed) {
+    stopTimers(); show('game'); setRound(i);
+    mode = 'draw'; phase = 'choosing'; drawer = who; options = opts || []; word = ''; mask = ''; pendingWord = ''; ink = []; cur = null;
+    renderInk(); header(); paintHint(); paintPlayers();
+    el.choose.hidden = false;
+    if (who === myId && options.length) {
+      el.chooseTitle.textContent = 'Your turn! Pick a word to draw';
+      el.chooseBtns.replaceChildren(...options.map((w, k) => {
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = w;
+        b.addEventListener('click', () => choose(k));
+        return b;
+      }));
+      el.form.hidden = true; el.tools.hidden = true;
+    } else {
+      el.chooseTitle.textContent = who === myId ? 'Getting your words…' : nameOf(who) + ' is picking a word…';
+      el.chooseBtns.replaceChildren();
+      setGuessing(false, 'Wait for the drawing…');
+    }
+    startClock(CHOOSE_MS, elapsed);
+  }
+  function choose(k) {
+    if (phase !== 'choosing' || drawer !== myId || !options[k]) return;
+    pendingWord = options[k];
+    el.chooseBtns.replaceChildren(); el.chooseTitle.textContent = 'Get ready to draw…';
+    if (isHost) hostChose(roundI, k); else send({ t: 'chose', i: roundI, k, id: myId });
   }
 
-  function endRound(winner) {       // host
-    if (phase !== 'round') return;
-    clearTimeout(roundTimer);
-    if (winner) scores[winner] = (scores[winner] || 0) + 1;
-    lastWinner = winner;
-    const m = { t: 'result', i: roundI, d: order[roundI], s: seeds[roundI], winner, scores, names: winner ? { [winner]: nameOf(winner) } : undefined };
-    send(m);
-    showResult(m);
-    nextTimer = setTimeout(() => {
-      if (roundI + 1 < TOTAL) startRound(roundI + 1);
-      else { phase = 'end'; send({ t: 'end', scores, names: knownNames() }); showEnd(); }
-    }, REVEAL_MS);
+  // Draw mode, step 2: the drawer draws, everyone else guesses.
+  function beginDrawTurn(i, who, m, myWord, elapsed) {
+    const keepInk = roundI === i && drawer === who;   // ink can arrive before the turn message
+    stopTimers(); show('game'); setRound(i);
+    if (!keepInk) ink = [];
+    mode = 'draw'; phase = 'round'; drawer = who; mask = m || ''; cur = null;
+    if (who === myId) word = myWord || pendingWord || word;
+    renderInk(); header(); paintHint(); paintPlayers();
+    if (who === myId) { el.form.hidden = true; el.tools.hidden = false; el.cv.classList.add('pen'); el.guess.blur(); }
+    else setGuessing(true, 'Type your guess');
+    startClock(TURN_MS, elapsed);
+  }
+
+  function onGot(m) {
+    if (m.i !== roundI || phase !== 'round') return;
+    scores = m.scores || scores;
+    if (!gots.some(g => g.id === m.id)) gots.push({ id: m.id, pts: m.pts });
+    feed(youOr(m.id) + ' guessed it! +' + m.pts, 'good');
+    if (m.id === myId) { iGot = true; setGuessing(false, 'You got it! Waiting for the others…'); }
+    paintPlayers([m.id, drawer].filter(Boolean));
   }
 
   function showResult(m) {
-    phase = 'reveal';
-    cancelAnimationFrame(raf); clearTimeout(claimTimer);
-    scores = m.scores || scores;
-    draw(1, true);
-    el.guess.disabled = true; el.guess.value = '';
-    el.bWord.textContent = cur ? cur.names[0] : '';
-    el.bWho.style.setProperty('--c', m.winner ? colorOf(m.winner) : 'var(--muted)');
-    el.bWho.textContent = m.winner === myId ? 'You got it!' : m.winner ? nameOf(m.winner) + ' got it' : 'Too hard! Nobody scores';
-    el.banner.hidden = false;
-    el.timer.classList.remove('low');
-    paintPlayers(m.winner);
+    if (m.mode === 'robot' && (!cur || curD !== m.d)) { curD = m.d; curS = m.s; cur = PICTURES[m.d] ? prep(PICTURES[m.d], m.s || 1) : null; }
+    stopTimers();
+    mode = m.mode || mode; phase = 'reveal'; roundI = m.i;
+    scores = m.scores || scores; gots = m.gots || gots; drawer = m.drawer || null;
+    show('game'); el.choose.hidden = true; el.count.hidden = true; el.hint.hidden = true;
+    if (mode === 'robot') draw(1, true); else renderInk();
+    setGuessing(false, ' ');
+    el.bWord.textContent = mode === 'robot' ? (cur ? cur.names[0] : '') : (m.word || '');
+    const parts = gots.map(g => youOr(g.id) + ' +' + g.pts);
+    if (mode === 'draw' && drawer && gots.length) parts.push(youOr(drawer) + ' drew +' + gots.length);
+    el.bWho.textContent = parts.length ? parts.join(' · ') : (mode === 'robot' ? 'Too hard! Nobody scores' : 'Nobody guessed it');
+    el.bWho.style.setProperty('--c', gots.length ? colorOf(gots[0].id) : 'var(--muted)');
+    el.banner.hidden = false; el.timer.classList.remove('low');
+    header(); paintPlayers(gots.map(g => g.id));
   }
 
   function showEnd() {
@@ -833,34 +964,222 @@
       li.append(a, b, c);
       return li;
     }));
-    el.again.hidden = role !== 'host';
-    el.endNote.textContent = role === 'host' ? 'Same players, new pictures?' : 'Waiting for the host to start a rematch.';
+    el.again.hidden = !isHost;
+    el.endNote.textContent = isHost ? 'Play again? You can switch modes first.' : 'Waiting for the host to start a rematch.';
     show('end');
   }
 
-  // A correct guess from a guest is re-sent until the host answers, in case a message drops.
-  function claim() {
-    if (!waiting || phase !== 'round' || claimTries >= 5) return;
-    claimTries++;
-    send({ t: 'correct', i: roundI, id: myId });
-    claimTimer = setTimeout(claim, 1200);
+  // ---------- host: runs the game ----------
+  el.start.addEventListener('click', startGame);
+  el.again.addEventListener('click', () => { phase = 'lobby'; show('lobby'); refreshLobby(); });
+
+  function startGame() {
+    const players = [myId, ...others()];
+    if (players.length < 2) return;
+    scores = {}; for (const id of players) scores[id] = 0;
+    if (mode === 'robot') {
+      order = shuffle(PICTURES.map((_, i) => i)).slice(0, TOTAL);
+      seeds = order.map(() => Math.floor(Math.random() * 1e9));
+      total = order.length;
+    } else {
+      const cycles = players.length <= 3 ? 2 : 1;
+      drawOrder = [];
+      for (let c = 0; c < cycles; c++) drawOrder.push(...shuffle(players.slice()));
+      total = drawOrder.length;
+    }
+    send({ t: 'start', mode, total, scores, names: knownNames() });
+    countdown(() => nextRound(0));
   }
 
+  function nextRound(i) {
+    if (mode === 'robot') {
+      send({ t: 'round', i, d: order[i], s: seeds[i] });
+      beginRobot(i, order[i], seeds[i]);
+      roundTimer = setTimeout(endRound, ROUND_MS);
+      return;
+    }
+    while (i < total && !online[drawOrder[i]]) i++;           // skip players who left
+    if (i >= total) { finish(); return; }
+    const opts = shuffle(WORDS.slice()).slice(0, 3);
+    send({ t: 'pick', i, drawer: drawOrder[i], options: opts, total });
+    beginChoosing(i, drawOrder[i], opts);
+    chooseTimer = setTimeout(() => hostChose(i, Math.floor(Math.random() * 3)), CHOOSE_MS);
+  }
+
+  function hostChose(i, k) {
+    if (phase !== 'choosing' || i !== roundI) return;
+    word = options[k] || options[0];
+    if (drawer === myId) pendingWord = word;
+    const m = word.replace(/[^ ]/g, '_');
+    send({ t: 'turn', i, drawer, mask: m });
+    beginDrawTurn(i, drawer, m, drawer === myId ? word : null);
+    roundTimer = setTimeout(endRound, TURN_MS);
+    if (word.replace(/ /g, '').length >= 4) hintTimers = [0.5, 0.75].map(f => setTimeout(revealLetter, TURN_MS * f));
+  }
+
+  function revealLetter() {
+    if (phase !== 'round' || mode !== 'draw') return;
+    const open = [...mask].map((c, i) => c === '_' ? i : -1).filter(i => i >= 0);
+    if (open.length < 2) return;
+    const j = open[Math.floor(Math.random() * open.length)];
+    mask = mask.slice(0, j) + word[j] + mask.slice(j + 1);
+    send({ t: 'hint', i: roundI, mask });
+    paintHint();
+  }
+
+  // The host checks every guess, so the answer never has to be sent to the guessers.
+  function judge(id, text) {
+    if (phase !== 'round' || !text) return;
+    if (mode === 'draw' && id === drawer) return;
+    if (gots.some(g => g.id === id)) return;
+    const answers = mode === 'robot' ? PICTURES[curD].names : [word];
+    if (isMatch(text, answers)) {
+      const pts = POINTS[gots.length] || 1;
+      scores[id] = (scores[id] || 0) + pts;
+      if (mode === 'draw') scores[drawer] = (scores[drawer] || 0) + 1;
+      const m = { t: 'got', i: roundI, id, pts, scores, names: { [id]: nameOf(id) } };
+      send(m); onGot(m);
+      checkAllGot();
+    } else if (isClose(text, answers)) {
+      if (id === myId) feed('So close!', 'close'); else send({ t: 'close', id });   // close guesses stay private
+    } else {
+      send({ t: 'chat', i: roundI, id, text });
+      if (id !== myId) feed(nameOf(id) + ': ' + text);
+    }
+  }
+
+  function checkAllGot() {
+    if (!isHost || phase !== 'round') return;
+    const need = Object.keys(online).filter(x => !(mode === 'draw' && x === drawer));
+    if (need.length && need.every(x => gots.some(g => g.id === x))) endRound();
+  }
+
+  function endRound() {
+    if (phase !== 'round' && phase !== 'choosing') return;
+    stopTimers();
+    const m = { t: 'result', i: roundI, mode, d: curD, s: curS, word: mode === 'draw' ? word : '', drawer, gots, scores, names: knownNames() };
+    send(m); showResult(m);
+    nextTimer = setTimeout(() => { if (roundI + 1 < total) nextRound(roundI + 1); else finish(); }, REVEAL_MS);
+  }
+  function finish() { stopTimers(); phase = 'end'; send({ t: 'end', scores, names: knownNames() }); showEnd(); }
+
+  // Tell a (re)joining player where the game is.
+  function sendSync(forId) {
+    const m = { t: 'sync', for: forId, mode, total, phase, i: roundI, elapsed: performance.now() - t0, scores, gots, names: knownNames(), d: curD, s: curS, drawer, mask };
+    if (mode === 'draw') {
+      m.ink = ink;
+      if (forId === drawer) { m.word = word; if (phase === 'choosing') m.options = options; }
+      if (phase === 'reveal') m.word = word;
+    }
+    send(m);
+  }
+  function applySync(m) {
+    mode = m.mode || 'robot'; total = m.total || total; scores = m.scores || {};
+    if (m.phase === 'end') { showEnd(); return; }
+    if (m.phase === 'countdown') { if (phase !== 'countdown') countdown(); return; }
+    const mine = () => { if ((m.gots || []).some(g => g.id === myId)) { iGot = true; setGuessing(false, 'You got it! Waiting for the others…'); } };
+    if (mode === 'robot') {
+      beginRobot(m.i, m.d, m.s, m.elapsed);
+      gots = m.gots || [];
+      if (m.phase === 'reveal') showResult({ mode, i: m.i, d: m.d, s: m.s, gots, scores, drawer: null }); else mine();
+    } else if (m.phase === 'choosing') {
+      beginChoosing(m.i, m.drawer, m.options, m.elapsed);
+    } else {
+      beginDrawTurn(m.i, m.drawer, m.mask, m.word, m.elapsed);
+      gots = m.gots || []; ink = m.ink || []; renderInk();
+      if (m.phase === 'reveal') showResult({ mode, i: m.i, word: m.word, drawer: m.drawer, gots, scores }); else mine();
+    }
+    paintPlayers();
+  }
+
+  // ---------- guessing ----------
   el.form.addEventListener('submit', e => {
     e.preventDefault();
-    const text = el.guess.value.trim();
-    if (phase !== 'round' || waiting || !text || !cur) return;
+    const text = el.guess.value.trim().slice(0, 24);
+    if (phase !== 'round' || iGot || !text) return;
+    if (mode === 'draw' && drawer === myId) return;
     el.guess.value = '';
-    if (isMatch(text, cur.names)) {
-      if (role === 'host') endRound(myId);
-      else { waiting = true; claimTries = 0; feed('Checking…'); claim(); }
-    } else {
-      feed('You: ' + text + ' ✗');
-      send({ t: 'miss', id: myId, text });
-      el.form.classList.remove('shake'); void el.form.offsetWidth; el.form.classList.add('shake');
-    }
+    feed('You: ' + text);
+    if (isHost) judge(myId, text); else send({ t: 'guess', i: roundI, id: myId, text });
     el.guess.focus({ preventScroll: true });
   });
+
+  // ---------- draw mode: pen, tools and live ink ----------
+  const INKS = ['#1f1d36', '#e63946', '#f4a261', '#f2c94c', '#2a9d8f', '#3a86ff', '#8338ec', '#8d5a3b', '#fffdf6'];
+  const SIZES = [0.8, 1.8, 4.2];
+  let penColor = INKS[0], penSize = SIZES[1], outbox = [], flushTimer = 0, penDown = false, lastPt = null;
+
+  const canDraw = () => mode === 'draw' && phase === 'round' && drawer === myId;
+  function inkXY(e) {
+    const r = el.cv.getBoundingClientRect();
+    return [Math.round((e.clientX - r.left) / r.width * 1000) / 10, Math.round((e.clientY - r.top) / r.height * 1000) / 10];
+  }
+  function pushOps(...ops) { applyOps(ops); outbox.push(...ops); if (!flushTimer) flushTimer = setTimeout(flush, 60); }
+  function flush() { flushTimer = 0; if (!outbox.length) return; send({ t: 'ink', i: roundI, ops: outbox }); outbox = []; }
+  el.cv.addEventListener('pointerdown', e => {
+    if (!canDraw()) return;
+    e.preventDefault();
+    try { el.cv.setPointerCapture(e.pointerId); } catch (err) {}
+    penDown = true; lastPt = inkXY(e);
+    pushOps(['s', penColor, penSize, lastPt[0], lastPt[1]]);
+  });
+  el.cv.addEventListener('pointermove', e => {
+    if (!penDown || !canDraw()) return;
+    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+    for (const ev of (evs.length ? evs : [e])) {
+      const p = inkXY(ev);
+      if (lastPt && Math.hypot(p[0] - lastPt[0], p[1] - lastPt[1]) < 0.5) continue;
+      lastPt = p; pushOps(['p', p[0], p[1]]);
+    }
+  });
+  const penUp = () => { penDown = false; lastPt = null; };
+  el.cv.addEventListener('pointerup', penUp);
+  el.cv.addEventListener('pointercancel', penUp);
+
+  function applyOps(ops) {
+    let full = false;
+    for (const op of ops) {
+      if (op[0] === 's') { ink.push({ c: op[1], w: op[2], pts: [[op[3], op[4]]] }); if (!full) drawStroke(ink[ink.length - 1], 0); }
+      else if (op[0] === 'p') { const s = ink[ink.length - 1]; if (!s) continue; s.pts.push([op[1], op[2]]); if (!full) drawStroke(s, s.pts.length - 2); }
+      else if (op[0] === 'u') { ink.pop(); full = true; }
+      else if (op[0] === 'c') { ink = []; full = true; }
+    }
+    if (full) renderInk();
+  }
+  function drawStroke(s, from) {
+    const k = el.cv.width / 100;
+    ctx.strokeStyle = s.c; ctx.fillStyle = s.c; ctx.lineWidth = s.w * k; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (s.pts.length === 1) { ctx.beginPath(); ctx.arc(s.pts[0][0] * k, s.pts[0][1] * k, s.w * k / 2, 0, Math.PI * 2); ctx.fill(); return; }
+    const a = s.pts[Math.max(0, from)];
+    ctx.beginPath(); ctx.moveTo(a[0] * k, a[1] * k);
+    for (let i = Math.max(0, from) + 1; i < s.pts.length; i++) ctx.lineTo(s.pts[i][0] * k, s.pts[i][1] * k);
+    ctx.stroke();
+  }
+  function renderInk() { ctx.clearRect(0, 0, el.cv.width, el.cv.height); for (const s of ink) drawStroke(s, 0); }
+
+  function buildTools() {
+    const sw = INKS.map((c, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'sw' + (i === 0 ? ' on' : '') + (i === INKS.length - 1 ? ' eraser' : '');
+      b.style.setProperty('--c', c);
+      b.setAttribute('aria-label', i === INKS.length - 1 ? 'Eraser' : 'Colour ' + (i + 1));
+      b.addEventListener('click', () => { penColor = c; el.tools.querySelectorAll('.sw').forEach(x => x.classList.toggle('on', x === b)); });
+      return b;
+    });
+    const sz = SIZES.map((w, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'sz' + (i === 1 ? ' on' : '');
+      b.setAttribute('aria-label', ['Thin', 'Medium', 'Thick'][i] + ' pen');
+      const d = document.createElement('i'); d.style.setProperty('--d', [5, 9, 15][i] + 'px'); b.append(d);
+      b.addEventListener('click', () => { penSize = w; el.tools.querySelectorAll('.sz').forEach(x => x.classList.toggle('on', x === b)); });
+      return b;
+    });
+    const tb = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'tbtn'; b.textContent = label; b.addEventListener('click', fn); return b; };
+    el.tools.replaceChildren(...sw, ...sz,
+      tb('Undo', () => { if (canDraw() && ink.length) pushOps(['u']); }),
+      tb('Clear', () => { if (canDraw()) pushOps(['c']); }));
+  }
+  buildTools();
 
   // ---------- canvas ----------
   function sizeCanvas() {
@@ -869,7 +1188,8 @@
     const dpr = Math.min(3, window.devicePixelRatio || 1);
     el.cv.style.width = el.cv.style.height = size + 'px';
     if (el.cv.width !== Math.round(size * dpr)) { el.cv.width = el.cv.height = Math.round(size * dpr); }
-    if (cur && phase === 'reveal') draw(1, true);
+    if (mode === 'draw') renderInk();
+    else if (cur && phase === 'reveal') draw(1, true);
   }
   new ResizeObserver(() => { if (!el.game.hidden) sizeCanvas(); }).observe(el.board);
 
@@ -917,7 +1237,7 @@
     document.body.append(grid);
   } else if (typeof supabase === 'undefined' || typeof QRCode === 'undefined') {
     setStatus('The game couldn\'t load. Check your internet and try again.', 'bad'); el.retry.hidden = false;
-  } else if (role === 'host') {
+  } else if (isHost) {
     code = Array.from({ length: 4 }, () => 'abcdefghjkmnpqrstuvwxyz'[Math.floor(Math.random() * 23)]).join('');
     setStatus('Setting up…');
     connect();
@@ -926,7 +1246,7 @@
     connect();
   }
 
-  window.__dd = { PICTURES, isMatch, prep, get state() { return { phase, roundI, scores, role, myId, answer: cur && cur.names[0], online: Object.keys(online).length }; } };
+  window.__dd = { PICTURES, WORDS, isMatch, isClose, prep, get state() { return { phase, mode, roundI, total, scores, role, myId, drawer, gots, answer: mode === 'robot' ? (cur && cur.names[0]) : (word || null), mask, options, ink: ink.length, online: Object.keys(online).length }; } };
 })();
 </script>
 </body>
