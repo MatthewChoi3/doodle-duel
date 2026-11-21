@@ -1,27 +1,31 @@
 # Doodle Duel
 
-A party guessing game for two or more phones, with two modes:
+A party drawing-and-guessing game. One screen (a laptop or TV) is the shared board, and everyone plays on their phone.
 
-- **Robot draws:** the robot scribbles 20 tough pictures (a stegosaurus, a seahorse, a steam train, an anglerfish…) in 4 seconds each. Every picture is tilted, sometimes mirrored, drawn in a random order and missing about a third of its lines. You have 14 seconds to guess.
-- **You draw:** players take turns. The artist picks one of three words and draws it with their finger while everyone else guesses, live. You get 80 seconds, and a letter is revealed at the halfway and three-quarter marks. With up to 3 players everyone draws twice; with 4 or more, once each.
+## Modes
+
+- **Robot draws:** the robot sketches a picture in 4 seconds and everyone races to guess it within 14 seconds. The sketches come from Google's [Quick, Draw!](https://quickdraw.withgoogle.com/data) dataset: 345 subjects with about 30 different people's drawings each (10,000+ sketches), plus 49 hand-made tricky pictures. Every sketch is randomly tilted, sometimes mirrored and drawn in a shuffled order, so you can't learn how the robot draws things.
+- **You draw:** players take turns. The artist picks one of three words (from 1,700+) and draws it on their phone while everyone else guesses. Letters are revealed at steady intervals. The host picks 2 to 5 rounds and 60 to 120 seconds per drawing. Drawing tools: pen, eraser, bucket fill, line, rectangle, circle (outlined or filled), 14 colours plus a full colour picker, 4 pen sizes, undo and clear.
 
 ## Scoring
 
-- The first correct guess scores 3 points, the second 2, and everyone after that 1.
-- In "You draw", the artist also gets 1 point for every player who guesses their drawing.
-- If nobody guesses in time, nobody scores.
-- A round ends as soon as everyone has guessed. A near-miss shows "So close!" to the person who typed it, and is hidden from everyone else.
+- A correct guess scores between 50 and 300 points depending on how much time is left, plus a bonus of 50 for the first player to get it and 25 for the second.
+- In "You draw", the artist gets 50 points for every player who guesses their drawing.
+- If nobody guesses, nobody scores. A round ends as soon as everyone has guessed.
+- A near miss shows "is close!" only to the player who typed it.
 
 ## How to play
 
-1. Open the game on one phone. That phone is the host: it picks the mode and has the Start button.
-2. Everyone else scans the QR code on the host's screen (or opens the link the host sends). Any number of players can join, even mid-game.
-3. The host taps **Start game**.
+1. Open the game on the shared screen. It shows a QR code and the game settings.
+2. Everyone scans the QR code with their phone. People can also join mid-game from the small QR code beside the scoreboard.
+3. Pick the mode and settings, then press **Start game**.
 
-Keep the host's screen on during the game: the host phone runs the rounds and checks the guesses.
+The shared screen doesn't play unless you tick "This screen plays too" (handy if only two of you are playing on two phones). Keep the shared screen awake during the game: it runs the rounds and checks the guesses.
 
 ## How it works
 
-It is a single `index.html` hosted on GitHub Pages. The phones send messages through a [Supabase Realtime](https://supabase.com/docs/guides/realtime) channel, so it works on mobile data and any Wi-Fi. If a phone drops out for a moment (screen locked, signal blip), it picks the game back up with its score, and the current drawing, when it reconnects.
+`index.html` holds the whole game and `drawings.json` holds the robot's sketches. Both are hosted on GitHub Pages. Phones talk through a [Supabase Realtime](https://supabase.com/docs/guides/realtime) channel, so it works on mobile data and any Wi-Fi. If a phone drops out for a moment it rejoins with its score and the current drawing.
 
-To check or edit the robot's drawings, add `?sheet` to the address to see all 49 pictures at once (the dashed pink lines are the ones left out during play).
+Add `?sheet` to the address to see the hand-made pictures and a sample of the real sketches.
+
+Sketch data: Quick, Draw! dataset by Google, licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The drawings were re-encoded into a smaller format for this game.

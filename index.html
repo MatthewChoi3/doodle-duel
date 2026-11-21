@@ -8,10 +8,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap">
 <style>
-  /* Layout: one fixed full-screen column per screen; the sketch pad takes all spare height. */
+  /* Layout: lobby is one centred column; the game is a players | pad | chat grid that folds to players | pad over chat on phones. */
   :root {
     --bg: #1d1b3a;
     --bg-2: #2a2752;
+    --bg-3: #36326a;
     --paper: #fffdf6;
     --ink: #1f1d36;
     --text: #f4f1ff;
@@ -30,7 +31,7 @@
   #app {
     position: fixed; left: 0; top: 0; width: 100%;
     height: var(--vvh, 100dvh);
-    padding: max(12px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
     display: flex; justify-content: center;
   }
   .screen { width: 100%; max-width: 460px; display: flex; flex-direction: column; gap: 10px; min-height: 0; }
@@ -40,7 +41,7 @@
   .tag { margin: 0; color: var(--muted); font-size: 17px; }
 
   label, .label { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
-  input {
+  input[type=text], input:not([type]) {
     font: inherit; font-size: 18px; width: 100%; min-width: 0;
     padding: 12px 14px; border-radius: 14px; border: 2px solid transparent;
     background: var(--bg-2); color: var(--text); outline: none;
@@ -59,8 +60,8 @@
   button.ghost { background: transparent; color: var(--text); box-shadow: none; border: 2px solid var(--bg-2); font-size: 16px; padding: 10px 14px; }
   button:focus-visible, input:focus-visible { outline: 3px solid var(--pop); outline-offset: 2px; }
 
-  /* Lobby: scrolls on short screens; auto margins centre it without clipping the top. */
-  #lobby { overflow-y: auto; gap: 12px; }
+  /* ---------- lobby ---------- */
+  #lobby { overflow-y: auto; gap: 12px; padding-bottom: 4px; }
   #lobby > :first-child { margin-top: auto; }
   #lobby > :last-child { margin-bottom: auto; }
   .field { display: flex; flex-direction: column; gap: 6px; }
@@ -72,7 +73,7 @@
   #status { margin: 0; min-height: 1.4em; font-size: 17px; text-align: center; }
   #status.ok { color: var(--good); }
   #status.bad { color: var(--bad); }
-  #whoBox, #modeBox { display: flex; flex-direction: column; gap: 6px; }
+  #whoBox, #setBox { display: flex; flex-direction: column; gap: 8px; }
   #modeNote { margin: 0; text-align: center; color: var(--muted); }
   #modeNote b { color: var(--text); }
 
@@ -84,74 +85,114 @@
   .seg button small { font-weight: 400; font-size: 13px; color: var(--muted); }
   .seg button.on { border-color: var(--pop); }
   .seg button:active { transform: none; }
+  .optrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .optrow > span { color: var(--muted); font-size: 15px; }
+  .pills { display: flex; gap: 6px; }
+  .pills button { box-shadow: none; padding: 6px 11px; font-size: 15px; border-radius: 10px; background: var(--bg-2); color: var(--text); border: 2px solid transparent; }
+  .pills button.on { border-color: var(--pop); }
+  .check { display: flex; gap: 10px; align-items: center; text-transform: none; letter-spacing: 0; font-size: 15px; color: var(--text); background: var(--bg-2); padding: 10px 12px; border-radius: 14px; cursor: pointer; }
+  .check input { width: 20px; height: 20px; accent-color: var(--pop); flex: none; }
+  .check small { display: block; color: var(--muted); font-size: 13px; }
 
-  /* Player chips (lobby list and in-game scoreboard) */
   .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chips.scroll { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; flex: none; }
-  .chips.scroll::-webkit-scrollbar { display: none; }
-  .chip {
-    flex: none; display: inline-flex; align-items: center; gap: 6px;
-    padding: 5px 11px 5px 8px; border-radius: 999px; background: var(--bg-2);
-    border: 2px solid transparent; font-size: 15px; white-space: nowrap;
-  }
+  .chip { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px 5px 8px; border-radius: 999px; background: var(--bg-2); border: 2px solid transparent; font-size: 15px; white-space: nowrap; }
   .chip i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); flex: none; }
-  .chip b { font-variant-numeric: tabular-nums; color: var(--c); }
   .chip.me { border-color: var(--c); }
-  .chip.off { opacity: .45; }
-  .chip.got { background: color-mix(in srgb, var(--good) 22%, var(--bg-2)); }
-  .chip.bump b { animation: bump .5s; }
-  @keyframes bump { 40% { transform: scale(1.6); } }
 
-  /* Game */
-  .hudtop { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; flex: none; }
-  .hudtop span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .hudtop span:last-child { flex: none; }
-  .timer { height: 8px; border-radius: 8px; background: var(--bg-2); overflow: hidden; flex: none; }
-  .timer i { display: block; height: 100%; width: 100%; background: var(--pop); transform-origin: left; }
-  .timer.low i { background: var(--bad); }
-  #hint { flex: none; text-align: center; font-size: 22px; font-weight: 600; letter-spacing: .04em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #hint small { font-size: 14px; color: var(--muted); font-weight: 400; letter-spacing: 0; }
+  /* ---------- game ---------- */
+  #game { max-width: 1240px; gap: 8px; }
+  .gtop { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; flex: none; }
+  .clock { --ring: var(--pop); width: 50px; height: 50px; border-radius: 50%; position: relative; background: conic-gradient(var(--ring) calc(var(--left, 1) * 360deg), var(--bg-2) 0); flex: none; }
+  .clock.low { --ring: var(--bad); }
+  .clock span { position: absolute; inset: 5px; border-radius: 50%; background: var(--bg); display: grid; place-items: center; font-weight: 700; font-size: 18px; font-variant-numeric: tabular-nums; }
+  #hint { text-align: center; font-size: clamp(18px, 4.6vw, 32px); font-weight: 600; letter-spacing: .05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  #hint small { font-size: .55em; color: var(--muted); font-weight: 400; letter-spacing: 0; }
+  .ginfo { text-align: right; font-size: 14px; color: var(--muted); line-height: 1.25; font-variant-numeric: tabular-nums; }
+  .ginfo b { display: block; color: var(--text); font-size: 15px; }
 
-  .board { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; }
-  canvas { background: var(--paper); border-radius: 20px; box-shadow: 0 6px 0 rgba(0,0,0,.25); display: block; }
+  .gmain { flex: 1; min-height: 0; display: grid; gap: 8px;
+    grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "list" "board" "chat"; }
+  .side { grid-area: list; display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+  .plist { list-style: none; margin: 0; padding: 0 0 2px; display: flex; flex-direction: row; gap: 5px; overflow-x: auto; scrollbar-width: none; min-height: 0; }
+  .plist::-webkit-scrollbar { display: none; }
+  .plist li { position: relative; flex: none; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 6px; align-items: baseline;
+    background: var(--bg-2); border-radius: 12px; padding: 5px 20px 5px 8px; border: 2px solid transparent; max-width: 150px; }
+  .plist .rk { grid-row: span 2; font-weight: 700; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .plist .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  .plist .pt { font-size: 13px; color: var(--c); font-weight: 600; font-variant-numeric: tabular-nums; }
+  .plist .ic { position: absolute; right: 6px; top: 4px; font-size: 13px; }
+  .plist li.me { border-color: var(--c); }
+  .plist li.got { background: color-mix(in srgb, var(--good) 28%, var(--bg-2)); }
+  .plist li.drawing { background: color-mix(in srgb, var(--pop) 22%, var(--bg-2)); }
+  .plist li.off { opacity: .45; }
+  .plist li.bump .pt { animation: bump .6s; }
+  @keyframes bump { 40% { transform: scale(1.35); } }
+  #joinMini { display: none; flex-direction: column; align-items: center; gap: 6px; background: var(--bg-2); border-radius: 14px; padding: 10px; font-size: 13px; color: var(--muted); text-align: center; }
+  #joinMini b { color: var(--text); letter-spacing: .15em; }
+  #qrMini { background: #fff; padding: 6px; border-radius: 10px; line-height: 0; }
+  #qrMini img, #qrMini canvas { width: 110px; height: 110px; }
+
+  .board { grid-area: board; min-height: 0; min-width: 0; position: relative; display: flex; align-items: center; justify-content: center; }
+  canvas#cv { background: var(--paper); border-radius: 16px; box-shadow: 0 6px 0 rgba(0,0,0,.25); display: block; }
   canvas.pen { touch-action: none; cursor: crosshair; }
-  #banner, #count {
-    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none;
-  }
-  #banner { justify-content: flex-end; padding-bottom: 6%; }
-  #banner .word { background: var(--ink); color: var(--pop); font-size: clamp(24px, 8vw, 38px); font-weight: 700; padding: 6px 18px; border-radius: 14px; text-transform: capitalize; }
-  #banner .who { margin: 6px 12px 0; background: var(--ink); color: var(--c, var(--text)); padding: 4px 12px; border-radius: 10px; font-size: 16px; }
+  #banner, #count { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+  #banner { justify-content: flex-end; padding-bottom: 5%; }
+  #banner .word { background: var(--ink); color: var(--pop); font-size: clamp(22px, 6vw, 40px); font-weight: 700; padding: 6px 18px; border-radius: 14px; text-transform: capitalize; max-width: 94%; }
+  #banner .who { margin: 6px 10px 0; background: var(--ink); color: var(--c, var(--text)); padding: 4px 12px; border-radius: 10px; font-size: 15px; max-width: 94%; }
   #count { font-size: 120px; font-weight: 700; color: var(--pop); text-shadow: 0 6px 0 rgba(0,0,0,.3); }
-  #choose {
-    position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
-    background: rgba(29, 27, 58, .9); border-radius: 20px; padding: 16px; text-align: center;
-  }
+  #choose { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+    background: rgba(29, 27, 58, .92); border-radius: 16px; padding: 16px; text-align: center; }
   #chooseTitle { margin: 0; font-size: 22px; font-weight: 600; text-wrap: balance; }
   #chooseBtns { display: flex; flex-direction: column; gap: 10px; width: min(260px, 100%); }
   #chooseBtns button { text-transform: capitalize; }
 
-  #feed { height: 58px; flex: none; display: flex; flex-direction: column; justify-content: flex-end; font-size: 14px; color: var(--muted); text-align: center; }
-  #feed div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .chat { grid-area: chat; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+  #feed { height: 62px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; font-size: 14px; color: var(--muted); }
+  #feed div { flex: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 1px 0; }
+  #feed b { color: var(--text); font-weight: 600; }
   #feed .good { color: var(--good); font-weight: 600; }
   #feed .close { color: var(--pop); font-weight: 600; }
+  #feed .sys { color: var(--muted); font-style: italic; }
   #guessForm { display: flex; gap: 8px; flex: none; }
   #guessForm input { flex: 1; background: var(--paper); color: var(--ink); }
   #guessForm input::placeholder { color: #8d89a8; }
   #guessForm input:disabled { opacity: .55; }
   #guessForm button { flex: none; }
 
-  #tools { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; align-items: center; flex: none; }
+  @media (min-width: 760px) {
+    .gmain { grid-template-columns: 210px minmax(0, 1fr) 270px; grid-template-rows: minmax(0, 1fr); grid-template-areas: "list board chat"; }
+    .plist { flex-direction: column; overflow-x: hidden; overflow-y: auto; }
+    .plist li { padding: 8px 24px 8px 10px; max-width: none; }
+    .plist .nm { font-size: 16px; }
+    .plist .pt { font-size: 14px; }
+    .chat { background: var(--bg-2); border-radius: 16px; padding: 10px; }
+    #feed { height: auto; flex: 1; justify-content: flex-start; overflow-y: auto; font-size: 15px; }
+    #feed div { white-space: normal; padding: 3px 4px; border-radius: 6px; }
+    #feed div:nth-child(odd) { background: rgba(255,255,255,.03); }
+    .host-view #joinMini { display: flex; }
+  }
+
+  /* drawing tools */
+  #tools { display: flex; flex-direction: column; gap: 6px; flex: none; }
+  .trow { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; align-items: center; }
   #tools button { box-shadow: none; padding: 0; }
   #tools button:active { transform: scale(.92); }
-  .sw { width: 32px; height: 32px; border-radius: 50%; background: var(--c); border: 3px solid var(--bg-2); }
-  .sw.eraser { background: linear-gradient(135deg, var(--paper) 44%, var(--bad) 44% 56%, var(--paper) 56%); }
-  .sw.on { border-color: var(--pop); }
-  .sz { width: 38px; height: 32px; border-radius: 10px; background: var(--bg-2); display: grid; place-items: center; border: 2px solid transparent; }
+  .tool { width: 38px; height: 34px; border-radius: 10px; background: var(--bg-2); color: var(--text); display: grid; place-items: center; border: 2px solid transparent; }
+  .tool svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .tool.on { border-color: var(--pop); color: var(--pop); }
+  .tool.txt { width: auto; padding: 0 10px !important; font-size: 14px; }
+  .sw { width: 26px; height: 26px; border-radius: 50%; background: var(--c); border: 2px solid var(--bg-3); }
+  .sw.on { border-color: var(--pop); transform: scale(1.12); }
+  .picker { position: relative; width: 30px; height: 30px; border-radius: 50%; overflow: hidden; border: 2px solid var(--bg-3);
+    background: conic-gradient(#e63946, #f2c94c, #7ed957, #3a86ff, #8338ec, #f15bb5, #e63946); }
+  .picker.on { border-color: var(--pop); }
+  .picker input { position: absolute; inset: -6px; width: 44px; height: 44px; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+  .sz { width: 34px; height: 30px; border-radius: 10px; background: var(--bg-2); display: grid; place-items: center; border: 2px solid transparent; }
   .sz i { display: block; width: var(--d); height: var(--d); border-radius: 50%; background: var(--text); }
   .sz.on { border-color: var(--pop); }
-  .tbtn { font-size: 15px !important; padding: 6px 12px !important; border-radius: 10px; background: var(--bg-2); color: var(--text); }
+  .cur { width: 26px; height: 26px; border-radius: 8px; background: var(--c); border: 2px solid var(--text); }
 
-  /* End */
+  /* ---------- end ---------- */
   #end { justify-content: center; text-align: center; gap: 18px; overflow-y: auto; }
   #endTitle { font-size: clamp(36px, 11vw, 54px); font-weight: 700; margin: 0; line-height: 1.02; text-wrap: balance; }
   #rank { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
@@ -159,14 +200,14 @@
   #rank li.me { border-color: var(--c); }
   #rank .pos { color: var(--muted); font-variant-numeric: tabular-nums; }
   #rank .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  #rank .sc { font-size: 26px; font-weight: 700; color: var(--c); font-variant-numeric: tabular-nums; }
-  #rank li:first-child .sc { font-size: 32px; }
+  #rank .sc { font-size: 24px; font-weight: 700; color: var(--c); font-variant-numeric: tabular-nums; }
+  #rank li:first-child .sc { font-size: 30px; }
   #endNote { margin: 0; color: var(--muted); }
 
   /* Picture check sheet (?sheet) */
   #sheet { position: fixed; inset: 0; overflow: auto; padding: 16px; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; background: var(--bg); }
   #sheet figure { margin: 0; text-align: center; font-size: 14px; }
-  #sheet canvas { width: 100%; height: auto; border-radius: 12px; }
+  #sheet canvas { width: 100%; height: auto; border-radius: 12px; background: var(--paper); }
 
   @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
@@ -176,7 +217,7 @@
 
   <section id="lobby" class="screen">
     <h1>Doodle<br><span>Duel</span></h1>
-    <p class="tag">Guess the robot's scribbles, or take turns drawing for each other. Faster guesses score more.</p>
+    <p class="tag">Guess the robot's sketches, or take turns drawing for each other. Faster guesses score more.</p>
     <div class="field">
       <label for="name">Your name</label>
       <input id="name" maxlength="12" autocomplete="off" placeholder="Type your name">
@@ -186,12 +227,16 @@
       <p id="codeLine">Room <b id="code"></b></p>
       <button id="share" class="ghost" type="button">Send the link instead</button>
     </div>
-    <div id="modeBox" hidden>
+    <div id="setBox" hidden>
       <span class="label">Game mode</span>
       <div class="seg">
-        <button type="button" id="modeRobot" class="on">Robot draws<small>Guess its tough scribbles</small></button>
+        <button type="button" id="modeRobot" class="on">Robot draws<small>Guess real sketches, fast</small></button>
         <button type="button" id="modeDraw">You draw<small>Take turns drawing</small></button>
       </div>
+      <div class="optrow" id="optPics"><span>Pictures</span><div class="pills" data-opt="pics"><button type="button" data-v="10">10</button><button type="button" data-v="20">20</button><button type="button" data-v="30">30</button></div></div>
+      <div class="optrow" id="optRounds"><span>Rounds</span><div class="pills" data-opt="rounds"><button type="button" data-v="2">2</button><button type="button" data-v="3">3</button><button type="button" data-v="4">4</button><button type="button" data-v="5">5</button></div></div>
+      <div class="optrow" id="optTime"><span>Draw time</span><div class="pills" data-opt="drawTime"><button type="button" data-v="60">60s</button><button type="button" data-v="80">80s</button><button type="button" data-v="100">100s</button><button type="button" data-v="120">120s</button></div></div>
+      <label class="check"><input type="checkbox" id="hostPlays"><span>This screen plays too<small>Leave off to use this screen as the shared board</small></span></label>
     </div>
     <p id="modeNote" hidden></p>
     <div id="whoBox" hidden>
@@ -204,29 +249,36 @@
   </section>
 
   <section id="game" class="screen" hidden>
-    <div class="hudtop"><span id="roundNo"></span><span id="roomTag"></span></div>
-    <div class="chips scroll" id="board-chips"></div>
-    <div class="timer" id="timer"><i id="bar"></i></div>
-    <div id="hint" hidden></div>
-    <div class="board" id="board">
-      <canvas id="cv" width="300" height="300" aria-label="The drawing"></canvas>
-      <div id="banner" hidden><div class="word" id="bWord"></div><div class="who" id="bWho"></div></div>
-      <div id="count" hidden></div>
-      <div id="choose" hidden><p id="chooseTitle"></p><div id="chooseBtns"></div></div>
+    <header class="gtop">
+      <div class="clock" id="clock"><span id="clockNum">0</span></div>
+      <div id="hint"></div>
+      <div class="ginfo"><b id="roundNo"></b><span id="roomTag"></span></div>
+    </header>
+    <div class="gmain">
+      <div class="side">
+        <ol class="plist" id="plist"></ol>
+        <div id="joinMini"><div id="qrMini"></div><span>Join: room <b id="codeMini"></b></span></div>
+      </div>
+      <div class="board" id="board">
+        <canvas id="cv" width="300" height="300" aria-label="The drawing"></canvas>
+        <div id="banner" hidden><div class="word" id="bWord"></div><div class="who" id="bWho"></div></div>
+        <div id="count" hidden></div>
+        <div id="choose" hidden><p id="chooseTitle"></p><div id="chooseBtns"></div></div>
+      </div>
+      <div class="chat"><div id="feed" aria-live="polite"></div></div>
     </div>
-    <div id="feed" aria-live="polite"></div>
+    <div id="tools" hidden></div>
     <form id="guessForm" autocomplete="off">
-      <input id="guess" placeholder="What is it?" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" maxlength="24" aria-label="Your guess">
+      <input id="guess" placeholder="Type your guess" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="send" maxlength="30" aria-label="Your guess">
       <button type="submit">Guess</button>
     </form>
-    <div id="tools" hidden></div>
   </section>
 
   <section id="end" class="screen" hidden>
     <p id="endTitle"></p>
     <ol id="rank"></ol>
     <p id="endNote"></p>
-    <button id="again" type="button" hidden>Play again</button>
+    <button id="again" type="button" hidden>Back to the lobby</button>
   </section>
 
 </main>
@@ -238,18 +290,16 @@
   'use strict';
 
   // ---------- settings ----------
-  const TOTAL = 20;            // pictures per robot game
-  const ROUND_MS = 14000;      // robot mode: time to guess each picture
-  const DRAW_MS = 4000;        // robot mode: the robot finishes each drawing in 4 seconds
-  const TURN_MS = 80000;       // draw mode: time for each drawing turn
-  const CHOOSE_MS = 12000;     // draw mode: time to pick a word
-  const REVEAL_MS = 3500;      // pause on the answer
-  const POINTS = [3, 2];       // 1st correct guess 3, 2nd 2, everyone after 1
-  const PREFIX = 'doodleduel-v4-';
+  const ROBOT_MS = 14000;      // robot mode: time to guess each picture
+  const ROBOT_DRAW_MS = 4000;  // robot mode: the robot finishes each sketch in 4 seconds
+  const CHOOSE_MS = 15000;     // draw mode: time to pick a word
+  const REVEAL_MS = 4000;      // pause on the answer
+  const DRAWER_PER_GUESS = 50; // draw mode: the artist earns this for each correct guesser
+  const PREFIX = 'doodleduel-v5-';
   // Supabase Realtime relays messages between phones (publishable key: safe to ship in the page).
   const SB_URL = 'https://popmeskdinlnlikzylyt.supabase.co';
   const SB_KEY = 'sb_publishable_7LN22XE2uyl7vjv_nKglow_Uw6-rTWN';
-  const COLORS = ['#3ddbd9', '#ff6f9c', '#ffd23f', '#a99bff', '#7ee081', '#ff9f45', '#5cb8ff', '#f78fe0'];
+  const COLORS = ['#3ddbd9', '#ff6f9c', '#ffd23f', '#a99bff', '#7ee081', '#ff9f45', '#5cb8ff', '#f78fe0', '#c3f73a', '#ff8a8a', '#9be7ff', '#e0b0ff'];
 
   // ---------- drawing helpers (100 x 100 grid, y goes down) ----------
   const P = (...n) => { const o = []; for (let i = 0; i < n.length; i += 2) o.push([n[i], n[i + 1]]); return o; };
@@ -460,29 +510,66 @@
       P(40, 10, 32, 5, 29, 9, 38, 14), A(46, 30, 2), A(47, 40, 2), A(46, 50, 2), A(48, 60, 2), P(52, 28, 56, 30), P(52, 44, 56, 46)] },
   ];
 
-  // Make every round hard: random mirror and tilt, shuffled stroke order, some lines left out, shaky pen.
+  // ---------- words for draw mode (deduplicated at load) ----------
+  const WORDS = [...new Set([
+    // animals
+    'ant,anteater,antelope,armadillo,baboon,badger,bat,bear,beaver,bee,beetle,bison,boar,buffalo,bulldog,bull,bumblebee,butterfly,camel,canary,caterpillar,cat,chameleon,cheetah,chicken,chihuahua,chimpanzee,chipmunk,clownfish,cobra,cockroach,cow,coyote,crab,crane,crocodile,crow,deer,dinosaur,dog,dolphin,donkey,dove,dragonfly,duck,eagle,eel,elephant,elk,emu,falcon,ferret,firefly,flamingo,fly,fox,frog,gecko,giraffe,goat,goldfish,goose,gorilla,grasshopper,hamster,hedgehog,hippo,horse,hummingbird,hyena,iguana,jaguar,jellyfish,kangaroo,kitten,koala,ladybug,lamb,leopard,lion,lizard,llama,lobster,mole,monkey,moose,mosquito,moth,mouse,mule,narwhal,octopus,orca,ostrich,otter,owl,ox,panda,panther,parrot,peacock,pelican,penguin,pig,pigeon,piranha,platypus,polar bear,poodle,porcupine,puppy,rabbit,raccoon,rat,rattlesnake,raven,reindeer,rhino,rooster,salmon,scorpion,seagull,seahorse,seal,shark,sheep,shrimp,skunk,sloth,slug,snail,snake,sparrow,spider,squid,squirrel,starfish,stingray,stork,swan,tadpole,tiger,toad,tortoise,toucan,turkey,turtle,unicorn,vulture,walrus,wasp,whale,wolf,woodpecker,worm,yak,zebra,hammerhead shark,pufferfish,oyster,bunny,hermit crab,killer whale,jellybean,bald eagle,sea lion,koi,mammoth,pterodactyl,t rex,triceratops,stegosaurus,dragon,griffin,pegasus',
+    // food and drink
+    'apple,apricot,avocado,bacon,bagel,baguette,banana,barbecue,beans,biscuit,blueberry,bread,broccoli,brownie,burrito,butter,cabbage,cake,candy,candy cane,carrot,cauliflower,celery,cereal,cheese,cheeseburger,cherry,chicken nugget,chili,chips,chocolate,coconut,coffee,cookie,corn,corn dog,croissant,cucumber,cupcake,curry,donut,dumpling,egg,eggplant,fish and chips,french fries,fried egg,fruit salad,garlic,ginger,gingerbread man,grapes,grapefruit,gummy bear,ham,hamburger,honey,hot chocolate,hot dog,ice cream,ice cube,jam,juice,kebab,ketchup,kiwi,lasagna,lemon,lemonade,lettuce,lime,lollipop,mango,marshmallow,meatball,melon,milk,milkshake,muffin,mushroom,mustard,nachos,noodles,nut,oatmeal,olive,omelette,onion,orange,pancake,papaya,pasta,peach,peanut,peanut butter,pear,peas,pepper,pepperoni,pickle,pie,pineapple,pizza,plum,popcorn,popsicle,potato,pretzel,pudding,pumpkin,radish,raisin,raspberry,rice,salad,salami,salt,sandwich,sausage,smoothie,soup,spaghetti,steak,strawberry,sushi,sweet potato,taco,tea,toast,tomato,tortilla,waffle,watermelon,yogurt,zucchini,cotton candy,candy bar,bubble gum,spring roll,ramen,cinnamon roll,cheesecake,wedding cake,sundae,fortune cookie,cracker,chicken leg,toffee apple,frozen yogurt,birthday cake,egg roll,baked potato,boiled egg,corn on the cob,pizza slice,lunchbox,picnic',
+    // household and everyday objects
+    'alarm clock,armchair,axe,backpack,bag,balloon,bandage,barrel,basket,bathtub,battery,bed,bell,bench,binoculars,blanket,blender,book,bookshelf,boomerang,bottle,bow,bowl,box,broom,brush,bucket,button,cabinet,calculator,calendar,camera,candle,cannon,carpet,cash register,chain,chair,chandelier,clock,coat hanger,coin,comb,compass,computer,couch,crayon,cup,curtain,cushion,desk,dice,dishwasher,door,doorbell,drawer,drill,dustpan,envelope,eraser,fan,faucet,fence,fire extinguisher,fireplace,flag,flashlight,flower pot,fork,picture frame,frying pan,funnel,glass,glasses,globe,glue,hairbrush,hairdryer,hammer,hammock,handbag,headphones,hook,hose,hourglass,iron,jar,kettle,key,keyboard,knife,ladder,lamp,lantern,laptop,lawn mower,light switch,lightbulb,lipstick,lock,magnet,magnifying glass,mailbox,map,marker,matchstick,mattress,megaphone,microphone,microwave,mirror,mop,mousetrap,mug,nail,necklace,needle,newspaper,notebook,oven,padlock,paint can,paintbrush,paper clip,pen,pencil,pencil sharpener,perfume,phone,piano,pillow,pin,plate,pliers,plug,plunger,pot,present,printer,purse,radio,rake,razor,remote control,ring,rope,rubber duck,ruler,safe,safety pin,salt shaker,saw,scale,scissors,screw,screwdriver,shampoo,shovel,shower,sink,soap,sofa,sponge,spoon,spray can,stapler,stool,stove,suitcase,sunglasses,table,tape,teapot,teddy bear,telephone,television,tent,thermometer,thread,tissue box,toaster,toilet,toilet paper,toolbox,toothbrush,toothpaste,towel,toy,trash can,tray,trophy,umbrella,vacuum cleaner,vase,wallet,wardrobe,washing machine,watch,watering can,wheelbarrow,whistle,window,wrench,yo yo,zipper,birdhouse,bunk bed,cradle,doormat,rocking chair,sleeping bag,traffic cone,piggy bank,dartboard,chess,crown,treasure chest,kite,puzzle,snow globe,music box,jack in the box,hot water bottle,fridge,clothes peg,ironing board,bathroom scale,bubble bath,cuckoo clock,grandfather clock,wind chime,fishbowl,fish tank,dog bowl,dog house,cat flap,bird cage,lava lamp,night light,smoke alarm,coffee machine,pepper grinder,rolling pin,whisk,ladle,spatula,colander,cheese grater,can opener,corkscrew,chopsticks,tongs,oven mitt,apron,lunch box',
+    // clothing and accessories
+    'baseball cap,belt,bikini,boot,bow tie,bracelet,cap,cape,coat,diaper,dress,earring,flip flops,glove,hat,hoodie,jacket,jeans,kimono,mask,mitten,overalls,pajamas,raincoat,sandal,scarf,shirt,shoe,shorts,skirt,slipper,sneaker,sock,suit,sweater,swimsuit,tie,top hat,t shirt,tuxedo,underwear,vest,wig,high heels,cowboy hat,beanie,sombrero,tiara,goggles,headband,shoelace,wedding dress,bathrobe,bucket hat,party hat,graduation cap,chef hat,pirate hat,wizard hat,witch hat,crown of flowers,bandana,poncho,ballet shoes,wellies,earmuffs,monocle,eyepatch,handcuffs,backpack straps,locket,brooch,cufflinks',
+    // vehicles and transport
+    'airplane,ambulance,bicycle,blimp,boat,bulldozer,bus,cable car,canoe,car,carriage,convertible,digger,fire truck,forklift,garbage truck,glider,go kart,helicopter,hot air balloon,jet ski,jeep,kayak,limousine,motorcycle,minivan,monster truck,motorboat,parachute,pickup truck,police car,raft,rocket,rowboat,sailboat,school bus,scooter,ship,sled,snowmobile,spaceship,speedboat,steam train,submarine,subway,tank,taxi,tractor,trailer,train,tram,tricycle,truck,ufo,unicycle,van,wagon,wheelchair,yacht,zeppelin,roller skates,ice skates,surfboard,snowboard,skis,skateboard,cruise ship,pirate ship,space shuttle,ice cream truck,camper van,double decker bus,race car,dump truck,cement mixer,fighter jet,paper airplane,hang glider,stroller,shopping cart,horse and cart,gondola,ferry,lifeboat,anchor,steering wheel,traffic light,road sign,parking meter,petrol pump,tire,engine,seatbelt',
+    // places and buildings
+    'airport,apartment,aquarium,bakery,bank,barn,beach,bridge,cabin,campsite,castle,cathedral,cave,church,cinema,circus,city,classroom,cliff,desert,factory,farm,ferris wheel,fire station,forest,fountain,garage,garden,gas station,greenhouse,gym,harbor,hospital,hotel,house,hut,igloo,island,jail,jungle,kitchen,library,lighthouse,mall,mansion,maze,mountain,museum,office,palace,park,parking lot,pier,playground,pond,swimming pool,prison,pyramid,restaurant,river,road,roller coaster,school,skyscraper,stadium,statue,supermarket,swamp,temple,tower,town,treehouse,tunnel,valley,village,volcano,waterfall,well,windmill,zoo,carousel,tepee,log cabin,bus stop,street lamp,crosswalk,sandcastle,dam,oasis,haunted house,eiffel tower,statue of liberty,great wall of china,leaning tower of pisa,big ben,stonehenge,colosseum,taj mahal,sphinx,mount rushmore,golden gate bridge,space station,moon base,bowling alley,ice rink,water park,haunted castle,dungeon,attic,basement,balcony,chimney,staircase,elevator,escalator,fire escape,front door,doghouse,henhouse,stable,barnyard,orchard,vineyard,campfire,picnic table,bus station,train station,lighthouse keeper',
+    // nature, weather, space
+    'asteroid,aurora,autumn,black hole,blizzard,branch,bush,cactus,cloud,comet,coral,crater,daisy,dandelion,earthquake,eclipse,feather,fire,flower,fog,galaxy,grass,hail,hurricane,ice,iceberg,lake,lava,leaf,lightning,meteor,moon,nest,ocean,palm tree,pebble,pine tree,planet,puddle,rain,rainbow,rock,rose,sand,seashell,seaweed,snow,snowflake,snowman,spider web,star,storm,sun,sunflower,sunrise,sunset,thunder,tornado,tree,tulip,wave,wind,cherry blossom,four leaf clover,acorn,pinecone,log,tree stump,roots,bamboo,lily pad,shooting star,constellation,astronaut,satellite,telescope,mars,saturn,earth,full moon,crescent moon,solar system,rain cloud,thunderstorm,tsunami,avalanche,sandstorm,whirlpool,geyser,canyon,glacier,hill,island paradise,beehive,anthill,mushroom ring,venus flytrap,cactus flower,bonsai,christmas tree,weeping willow,coconut tree,haystack,scarecrow,cornfield,sunflower field,meadow,rock pool,coral reef,sand dune,quicksand,stalactite,crystal,gemstone,gold nugget,fossil,footprint,paw print',
+    // body and people
+    'ankle,arm,back,beard,belly button,blood,bone,brain,cheek,chin,ear,elbow,eye,eyebrow,eyelash,face,finger,fingerprint,fist,foot,forehead,freckles,hair,hand,heart,heel,hip,knee,leg,lips,lungs,mouth,muscle,moustache,neck,nose,ponytail,shoulder,skeleton,skull,smile,stomach,teeth,thumb,toe,tongue,tooth,wrist,wink,tear,sneeze,yawn,braces,tattoo,bald,afro,pigtails,mohawk,belly,goosebumps,hiccup,headache,toothache,sunburn,bruise,black eye,broken arm,band aid,crutches,cast,x ray,baby,toddler,teenager,grandma,grandpa,twins,family,couple,crowd,queue,selfie',
+    // sports, games, hobbies
+    'archery,badminton,ball,baseball,basketball,bowling,boxing,darts,dodgeball,fishing,football,golf,gymnastics,hockey,hula hoop,javelin,jump rope,karate,marathon,medal,net,ping pong,pool table,race,rugby,sailing,scoreboard,skiing,skydiving,soccer,surfing,swimming,tennis,trampoline,tug of war,volleyball,weightlifting,wrestling,yoga,dumbbell,frisbee,goal,hurdle,pinball,rubiks cube,marbles,playing cards,board game,video game,joystick,slot machine,domino,seesaw,slide,swing,sandbox,hopscotch,hide and seek,snowball fight,water balloon,paper boat,origami,knitting,sewing,pottery,photography,stamp collecting,bird watching,rock climbing,bungee jumping,scuba diving,snorkel,fishing rod,tennis racket,baseball bat,hockey stick,golf club,boxing gloves,skipping rope,trophy cup,finish line,starting line,referee,cheerleader,mascot,podium,olympics,world cup,penalty kick,slam dunk,home run,hole in one,checkmate,poker,bingo,lottery,jigsaw puzzle,crossword,sudoku,treasure map,magic trick,card trick,juggling balls',
+    // music and art
+    'accordion,bagpipes,banjo,cello,clarinet,cymbal,drum,flute,guitar,electric guitar,harmonica,harp,maracas,music note,orchestra,record player,saxophone,speaker,tambourine,triangle,trombone,trumpet,tuba,ukulele,violin,xylophone,easel,palette,sculpture,painting,ballet,disco ball,conductor,karaoke,dj,concert,rock star,drum kit,microphone stand,headphones on,vinyl record,cassette tape,boombox,piano keys,sheet music,treble clef,metronome,mona lisa,self portrait,graffiti,mural,comic book,cartoon,puppet,marionette,ventriloquist,mime,stage,curtain call,spotlight,red carpet,movie theater,popcorn bucket,film camera,clapperboard,oscar,ticket',
+    // jobs, characters, fantasy
+    'alien,angel,artist,baker,ballerina,cowboy,chef,clown,dentist,detective,doctor,dwarf,elf,fairy,farmer,firefighter,genie,ghost,giant,gnome,goblin,judge,king,knight,magician,mermaid,monster,mummy,ninja,nurse,pilot,pirate,police officer,prince,princess,queen,robot,scientist,soldier,superhero,surgeon,teacher,troll,vampire,viking,witch,wizard,werewolf,zombie,cyclops,centaur,phoenix,yeti,bigfoot,santa,tooth fairy,easter bunny,leprechaun,cupid,grim reaper,caveman,lifeguard,mailman,plumber,waiter,gardener,photographer,painter,barber,lumberjack,sailor,captain,juggler,acrobat,beekeeper,zookeeper,astronomer,archaeologist,construction worker,electrician,mechanic,cashier,librarian,lawyer,banker,postman,shepherd,fisherman,hunter,explorer,spy,thief,burglar,prisoner,sheriff,cowgirl,samurai,gladiator,pharaoh,emperor,jester,minotaur,kraken,loch ness monster,sea monster,frankenstein,headless horseman,snow queen,ice dragon,fire breathing dragon,sleeping beauty,cinderella,little red riding hood,big bad wolf,three little pigs,humpty dumpty,gingerbread house,magic carpet,flying broom,crystal ball,magic wand,spell book,potion,cauldron,haunted mirror,treasure,pot of gold',
+    // technology and science
+    'cd,charger,computer mouse,drone,floppy disk,game controller,lightsaber,projector,smartphone,tablet,usb stick,virtual reality,webcam,wifi,email,emoji,robot vacuum,smartwatch,solar panel,wind turbine,electricity,cable,antenna,radar,microchip,battery charger,power outlet,extension cord,light bulb moment,rocket launch,test tube,microscope,atom,dna,magnifier,laboratory,beaker,bunsen burner,periodic table,volcano experiment,dinosaur bones,time machine,teleporter,jetpack,hoverboard,flying car,robot arm,3d glasses,barcode,qr code,password,printer paper,calculator watch,digital clock,thermostat,traffic camera,security camera,satellite dish,radio tower,lighthouse beam,compass needle,gps,map pin,spaceship cockpit,alien abduction,crop circle',
+    // holidays and celebrations
+    'birthday,christmas,easter egg,fireworks,halloween,jack o lantern,pinata,snow angel,stocking,valentine,wreath,candy corn,confetti,mistletoe,menorah,sleigh,bonfire,costume,wedding,graduation,new year,party,surprise party,gift box,birthday candles,party popper,streamers,balloon animal,bouncy castle,face paint,trick or treat,haunted hayride,easter basket,chocolate egg,advent calendar,gingerbread,nutcracker,santa hat,elf hat,snowball,ice skating,hot cocoa,thanksgiving,pumpkin pie,turkey dinner,fourth of july,parade,carnival,lantern festival,dragon dance,diwali lamp,rangoli,eid,mooncake,firecracker,red envelope',
+    // actions
+    'dancing,sleeping,running,jumping,crying,laughing,singing,reading,cooking,climbing,flying,falling,eating,drinking,waving,kissing,hugging,sweeping,digging,skating,diving,sunbathing,snoring,shouting,thinking,praying,bowing,clapping,pointing,crawling,marching,rowing,skipping,spinning,stretching,tickling,typing,writing,drawing,shopping,camping,hiking,gardening,baking,texting,vacuuming,brushing teeth,washing hands,taking a bath,doing homework,walking the dog,riding a bike,flying a kite,building a snowman,blowing bubbles,making a wish,catching a fish,throwing a ball,kicking a ball,playing guitar,eating spaghetti,sleepwalking,sneaking,tiptoeing,hitchhiking,daydreaming,sneezing,whispering,juggling,meditating,boxing match,arm wrestling,high five,thumbs up,fist bump,handshake,peace sign,facepalm,shrug,salute,cartwheel,somersault,handstand,push up,sit up,breakdance,moonwalk,limbo,conga line,belly flop,cannonball,snow angel making',
+    // feelings and ideas
+    'angry,happy,sad,scared,surprised,tired,love,idea,music,money,time,hot,cold,fast,slow,loud,rich,sick,lazy,bored,confused,dizzy,hungry,thirsty,sleepy,excited,proud,shy,jealous,in love,heartbreak,broken heart,friendship,teamwork,peace,danger,secret,lucky,unlucky,genius,brain freeze,nightmare,dream,memory,gravity,echo,shadow,reflection,invisible,upside down,inside out,maze runner,question mark,exclamation mark,recycling,stop sign,hashtag,smiley face,dollar sign,percent,infinity,yin yang,thumbs down,zzz',
+    // misc objects
+    'arrow,bomb,bubble,cage,catapult,chainsaw,dagger,diamond,dynamite,gem,gold,horseshoe,lasso,paper plane,scroll,shield,sword,target,tombstone,totem pole,trident,bow and arrow,sundial,wishing well,wheel,gear,puzzle piece,stamp,postcard,passport,ticket stub,money bag,credit card,coin purse,treasure map piece,message in a bottle,time capsule,hot air,spinning top,kaleidoscope,slinky,whoopee cushion,fidget spinner,rattle,pacifier,baby bottle,high chair,sandpit,swing set,sprinkler,garden gnome,bird bath,mailbag,lunch tray,school bag,chalkboard,whiteboard,pencil case,glue stick,highlighter,sticky note,thumbtack,hole punch,filing cabinet,office chair,water cooler,vending machine,photocopier,id card,name tag,key ring,keyhole,doorknob,welcome mat,coat rack,umbrella stand,shoe rack,laundry basket,clothesline,ironing,sewing machine,spool of thread,button jar,measuring tape,toolbelt,hard hat,ladder truck,fire hydrant,manhole,street sign,bench in park,bird feeder,windsock,weather vane,flagpole,lamppost,bollard,speed bump,zebra crossing,roundabout,skate park,half pipe,bmx bike,mountain bike,tandem bicycle,penny farthing'
+  ].join(',').split(',').map(w => w.trim().toLowerCase()).filter(Boolean))];
+
+  // ---------- making every robot round hard ----------
+  // Random mirror and tilt, shuffled stroke order, some lines left out, shaky pen.
   // Left-out lines are drawn in pink when the answer is revealed.
   const len = s => s.reduce((t, p, i) => i ? t + Math.hypot(p[0] - s[i - 1][0], p[1] - s[i - 1][1]) : 0, 0);
-  function prep(pic, seed) {
+  function prep(pic, seed, kind = 'hand') {
     let h = (seed * 2654435761 + 1013904223) >>> 0 || 1;
     const rnd = () => { h ^= h << 13; h >>>= 0; h ^= h >>> 17; h ^= h << 5; h >>>= 0; return h / 4294967296; };
-    const flip = rnd() < 0.5, ang = (rnd() * 2 - 1) * 35 * Math.PI / 180, ca = Math.cos(ang), sa = Math.sin(ang);
-    let raw = pic.s.map(s => s.map(([x, y]) => {
+    const maxTilt = kind === 'qd' ? 25 : 35;
+    const flip = rnd() < 0.5, ang = (rnd() * 2 - 1) * maxTilt * Math.PI / 180, ca = Math.cos(ang), sa = Math.sin(ang);
+    let raw = pic.s.filter(s => s.length).map(s => s.map(([x, y]) => {
       if (flip) x = 100 - x;
       const dx = x - 50, dy = y - 50;
       return [50 + dx * ca - dy * sa, 50 + dx * sa + dy * ca];
     }));
-    // fit the tilted picture back inside the pad
     const all = raw.flat(), xs = all.map(p => p[0]), ys = all.map(p => p[1]);
     const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-    const k = Math.min(1, 88 / Math.max(maxX - minX, maxY - minY)), cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    const k = 86 / Math.max(maxX - minX, maxY - minY, 1), cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
     raw = raw.map(s => s.map(([x, y]) => [50 + (x - cx) * k, 50 + (y - cy) * k]));
     raw = raw.map(s => rnd() < 0.5 ? s.slice().reverse() : s);
-    // leave out about a third of the strokes, but always keep the longest one (the main outline)
     const longest = raw.reduce((b, s, i) => len(s) > len(raw[b]) ? i : b, 0);
-    const dropN = raw.length >= 4 ? Math.floor(raw.length * (0.25 + rnd() * 0.15)) : 0;
+    const rate = kind === 'qd' ? (raw.length >= 5 ? 0.15 + rnd() * 0.1 : 0) : (raw.length >= 4 ? 0.25 + rnd() * 0.15 : 0);
+    const dropN = Math.floor(raw.length * rate);
     const dropIdx = new Set(raw.map((_, i) => i).filter(i => i !== longest).sort(() => rnd() - 0.5).slice(0, dropN));
-    let order = raw.map((s, i) => ({ s, hidden: dropIdx.has(i) }));
+    const order = raw.map((s, i) => ({ s, hidden: dropIdx.has(i) }));
     for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
     let total = 0;
     const strokes = order.map(({ s: src, hidden }) => {
@@ -492,7 +579,7 @@
         const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0) / 3));
         for (let q = 1; q <= n; q++) {
           const f = q / n, last = (q === n);
-          pts.push([x0 + (x1 - x0) * f + (last ? 0 : (rnd() - .5) * 1.4), y0 + (y1 - y0) * f + (last ? 0 : (rnd() - .5) * 1.4)]);
+          pts.push([x0 + (x1 - x0) * f + (last ? 0 : (rnd() - .5) * 1.2), y0 + (y1 - y0) * f + (last ? 0 : (rnd() - .5) * 1.2)]);
         }
       }
       const seg = [0];
@@ -504,20 +591,13 @@
     return { names: pic.names, strokes, total };
   }
 
-  // ---------- words for draw mode ----------
-  const WORDS = ('apple,banana,pizza,rocket,castle,dragon,guitar,rainbow,volcano,penguin,snowman,giraffe,octopus,lighthouse,umbrella,cactus,mermaid,unicorn,' +
-    'robot,pirate,treasure,island,tornado,skeleton,vampire,ghost,wizard,crown,sword,shield,bicycle,helicopter,submarine,train,airplane,parachute,' +
-    'hot air balloon,ferris wheel,roller coaster,tent,campfire,igloo,pyramid,windmill,bridge,skyscraper,lamp,toothbrush,scissors,glasses,headphones,' +
-    'camera,telescope,magnet,battery,lightbulb,key,ladder,hammer,anchor,compass,clock,hourglass,candle,birthday cake,cupcake,donut,ice cream,popcorn,' +
-    'hamburger,hot dog,sushi,taco,cheese,egg,carrot,mushroom,pineapple,watermelon,cherry,strawberry,grapes,cookie,sandwich,spaghetti,teapot,fork,' +
-    'frying pan,fridge,toilet,bathtub,bed,sofa,chair,door,fence,mailbox,snail,spider,butterfly,bee,ladybug,frog,turtle,snake,crocodile,shark,whale,' +
-    'dolphin,jellyfish,crab,starfish,seahorse,owl,parrot,flamingo,peacock,bat,rabbit,kangaroo,elephant,lion,zebra,monkey,panda,koala,camel,horse,' +
-    'cow,pig,sheep,chicken,duck,dinosaur,beard,moustache,tooth,brain,skull,hand,foot,nose,eyeball,sun,moon,star,planet,cloud,lightning,snowflake,' +
-    'palm tree,flower,rose,leaf,mountain,waterfall,beach,football,basketball,skateboard,surfboard,trophy,drum,piano,trumpet,violin,microphone,' +
-    'television,computer,phone,backpack,balloon,kite,sock,shoe,hat,glove,dress,bow tie,ring,diamond,money,gift,letter,book,pencil,paintbrush').split(',');
+  // Quick, Draw! sketches are stored as 64-level x/y characters, strokes separated by spaces.
+  const AL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const decodeQD = str => str.split(' ').map(s => { const o = []; for (let i = 0; i + 1 < s.length; i += 2) o.push([(AL.indexOf(s[i]) * 4 + 2) / 2.56, (AL.indexOf(s[i + 1]) * 4 + 2) / 2.56]); return o; });
+  let QD = null;   // { names, d } loaded by the host from drawings.json
 
   // ---------- guess checking ----------
-  const norm = s => String(s).toLowerCase().replace(/[^a-z ]/g, '').replace(/\s+/g, ' ').trim();
+  const norm = s => String(s).toLowerCase().replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim();
   function dist(a, b) {
     const row = Array.from({ length: b.length + 1 }, (_, j) => j);
     for (let i = 1; i <= a.length; i++) {
@@ -534,35 +614,38 @@
   function isMatch(guess, names) {
     const g = norm(guess).replace(/^(a|an|the) /, '');
     if (!g) return false;
-    const joined = g.replace(/ /g, ''), words = g.split(' ');
+    const joined = g.replace(/ /g, '');
     return names.some(n => {
-      const nj = n.replace(/ /g, '');
+      const nj = squash(n);
+      if (!nj) return false;
       if (joined === nj || joined === nj + 's' || joined + 's' === nj || joined === nj + 'es') return true;
-      if (words.includes(nj)) return true;
       return nj.length >= 5 && dist(joined, nj) <= 1;
     });
   }
   function isClose(guess, names) {
     const j = squash(guess);
-    return j.length >= 3 && names.some(n => { const nj = n.replace(/ /g, ''); return nj.length >= 4 && dist(j, nj) <= 2; });
+    return j.length >= 3 && names.some(n => { const nj = squash(n); return nj.length >= 4 && dist(j, nj) <= 2; });
   }
+  const maskOf = w => w.replace(/[a-z]/gi, '_');
+  const letterCount = m => m.replace(/[^_a-z]/gi, '').length;
 
   // ---------- elements ----------
   const $ = id => document.getElementById(id);
   const el = {
     lobby: $('lobby'), game: $('game'), end: $('end'),
     name: $('name'), hostBox: $('hostBox'), qr: $('qr'), code: $('code'), share: $('share'),
-    modeBox: $('modeBox'), modeRobot: $('modeRobot'), modeDraw: $('modeDraw'), modeNote: $('modeNote'),
-    whoBox: $('whoBox'), whoLabel: $('whoLabel'), who: $('who'),
+    setBox: $('setBox'), modeRobot: $('modeRobot'), modeDraw: $('modeDraw'), optPics: $('optPics'), optRounds: $('optRounds'), optTime: $('optTime'), hostPlays: $('hostPlays'),
+    modeNote: $('modeNote'), whoBox: $('whoBox'), whoLabel: $('whoLabel'), who: $('who'),
     status: $('status'), start: $('start'), retry: $('retry'),
-    roundNo: $('roundNo'), roomTag: $('roomTag'), chips: $('board-chips'), timer: $('timer'), bar: $('bar'), hint: $('hint'), board: $('board'), cv: $('cv'),
-    banner: $('banner'), bWord: $('bWord'), bWho: $('bWho'), count: $('count'), choose: $('choose'), chooseTitle: $('chooseTitle'), chooseBtns: $('chooseBtns'),
+    clock: $('clock'), clockNum: $('clockNum'), hint: $('hint'), roundNo: $('roundNo'), roomTag: $('roomTag'),
+    plist: $('plist'), qrMini: $('qrMini'), codeMini: $('codeMini'),
+    board: $('board'), cv: $('cv'), banner: $('banner'), bWord: $('bWord'), bWho: $('bWho'), count: $('count'),
+    choose: $('choose'), chooseTitle: $('chooseTitle'), chooseBtns: $('chooseBtns'),
     feed: $('feed'), form: $('guessForm'), guess: $('guess'), tools: $('tools'),
     endTitle: $('endTitle'), rank: $('rank'), endNote: $('endNote'), again: $('again'),
   };
-  const ctx = el.cv.getContext('2d');
+  const ctx = el.cv.getContext('2d', { willReadFrequently: true });
 
-  // Keep the layout inside the visible area when the phone keyboard opens.
   function fitViewport() {
     const vv = window.visualViewport;
     document.documentElement.style.setProperty('--vvh', (vv ? vv.height : window.innerHeight) + 'px');
@@ -575,31 +658,29 @@
   // ---------- state ----------
   const params = new URLSearchParams(location.search);
   const joinCode = (params.get('room') || '').toLowerCase().replace(/[^a-z]/g, '').slice(0, 6);
-  const role = joinCode ? 'guest' : 'host';
-  const isHost = role === 'host';
+  const isHost = !joinCode;
   const store = {
     get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } },
     set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} },
   };
-  // A stable id per tab, so reloading the page rejoins with the same score.
-  const myId = (() => {
+  const myId = (() => {   // stable per tab, so a reload rejoins with the same score
     const k = 'dd-id-' + (joinCode || 'host');
     let v = store.get(k);
     if (!v) { v = Math.random().toString(36).slice(2, 10); store.set(k, v); }
     return v;
   })();
 
+  const cfg = { mode: 'robot', pics: 20, rounds: 3, drawTime: 80, hostPlays: false };   // the host's settings
   let ch = null, subscribed = false, readyOnce = false, findTimer = 0, code = joinCode;
-  let online = {};                 // id -> { name, host, mode } for everyone connected right now
-  let names = {};                  // id -> last known name, kept after someone leaves
+  let online = {};                 // id -> { name, host, plays } for everyone connected now
+  let names = {};                  // id -> last known name
   let hostOnline = false;
   let phase = 'lobby';             // lobby | countdown | choosing | round | reveal | end
-  let mode = 'robot';              // robot | draw
-  let total = TOTAL, roundMs = ROUND_MS;
-  let scores = {};                 // id -> points (the host owns the truth)
-  let order = [], seeds = [], drawOrder = [];
-  let roundI = 0, cur = null, curD = -1, curS = 0, t0 = 0, raf = 0;
-  let drawer = null, word = '', mask = '', options = [], pendingWord = '';
+  let mode = 'robot';
+  let scores = {}, playerOrder = [];
+  let turn = 0, total = 0, roundNo = 1, rounds = 3, turnMs = 80000, phaseMs = 1, t0 = 0, raf = 0;
+  let cur = null, robotMsg = null, answers = [], usedPics = new Set(), usedWords = new Set();
+  let drawer = null, word = '', mask = '', options = [], pendingWord = '', queue = [];
   let gots = [], ink = [], iGot = false;
   let roundTimer = 0, nextTimer = 0, countTimer = 0, chooseTimer = 0, hintTimers = [], wake = null;
 
@@ -609,9 +690,16 @@
   const myName = () => el.name.value.trim() || (isHost ? 'Host' : 'Player');
   const nameOf = id => id === myId ? myName() : (online[id] && online[id].name) || names[id] || 'Player';
   const youOr = id => id === myId ? 'You' : nameOf(id);
-  // Colours follow the sorted player ids, so every phone shows the same colour for the same player and nobody shares one (up to 8).
+  const amPlayer = () => !isHost || cfg.hostPlays;
+  const isPlayer = id => {
+    if (id === myId) return amPlayer();
+    const p = online[id];
+    if (p && p.host) return !!p.plays;
+    return true;
+  };
+  const activePlayers = () => [...new Set([myId, ...Object.keys(online)])].filter(id => (id === myId || online[id]) && isPlayer(id));
   const colorOf = id => {
-    const ids = [...new Set([...Object.keys(scores), ...Object.keys(online), myId, id])].sort();
+    const ids = [...new Set([...Object.keys(scores), ...activePlayers(), id])].sort();
     return COLORS[ids.indexOf(id) % COLORS.length];
   };
   const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -621,21 +709,28 @@
     if (which === 'game') sizeCanvas();
   }
   function setStatus(text, cls) { el.status.textContent = text; el.status.className = cls || ''; }
+
+  // chat / feed: a scrolling log on big screens, the last three lines on phones
   const feedLines = [];
-  function feed(text, cls) {
-    if (!text) feedLines.length = 0;
-    else { feedLines.push({ text, cls }); if (feedLines.length > 3) feedLines.shift(); }
-    el.feed.replaceChildren(...feedLines.map(l => { const d = document.createElement('div'); d.textContent = l.text; if (l.cls) d.className = l.cls; return d; }));
+  function feed(parts, cls) {
+    if (parts === null) feedLines.length = 0;
+    else { feedLines.push({ parts: [].concat(parts), cls }); if (feedLines.length > 60) feedLines.shift(); }
+    el.feed.replaceChildren(...feedLines.map(l => {
+      const d = document.createElement('div'); if (l.cls) d.className = l.cls;
+      for (const p of l.parts) d.append(typeof p === 'string' ? p : Object.assign(document.createElement('b'), { textContent: p.b }));
+      return d;
+    }));
+    el.feed.scrollTop = el.feed.scrollHeight;
   }
   const send = m => { if (ch && subscribed) ch.send({ type: 'broadcast', event: 'm', payload: m }); };
 
   // ---------- connection ----------
-  function trackMe() { if (ch && subscribed) ch.track({ name: myName(), host: isHost, mode: isHost ? mode : undefined }); }
+  function trackMe() { if (ch && subscribed) ch.track({ name: myName(), host: isHost, plays: isHost ? cfg.hostPlays : true, cfg: isHost ? cfg : undefined }); }
   let nameTimer = 0;
   el.name.addEventListener('input', () => {
     try { localStorage.setItem('dd-name', el.name.value.trim()); } catch (e) {}
     paintPlayers();
-    clearTimeout(nameTimer);       // tell the others once typing pauses, not on every key
+    clearTimeout(nameTimer);
     nameTimer = setTimeout(trackMe, 400);
   });
 
@@ -650,13 +745,13 @@
       if (status === 'SUBSCRIBED') {
         subscribed = true;
         el.retry.hidden = true;
-        try { await ch.track({ name: myName(), host: isHost, mode: isHost ? mode : undefined }); } catch (e) {}
-        if (!isHost) send({ t: 'hello', id: myId });   // the host replies with the game state
+        try { await ch.track({ name: myName(), host: isHost, plays: isHost ? cfg.hostPlays : true, cfg: isHost ? cfg : undefined }); } catch (e) {}
+        if (!isHost) send({ t: 'hello', id: myId });
         onReady();
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
         subscribed = false;
         if (phase === 'lobby') { setStatus('Couldn\'t reach the game server. Check your internet; it keeps retrying.', 'bad'); el.retry.hidden = false; }
-        else feed('Connection lost, reconnecting…');
+        else feed('Connection lost, reconnecting…', 'sys');
       } else if (status === 'CLOSED') subscribed = false;
     });
   }
@@ -666,27 +761,30 @@
     for (const id in st) {
       const metas = st[id]; if (!metas.length) continue;
       const m = metas[metas.length - 1];
-      next[id] = { name: String(m.name || 'Player').slice(0, 12), host: !!m.host, mode: m.mode };
+      next[id] = { name: String(m.name || 'Player').slice(0, 12), host: !!m.host, plays: m.plays !== false, cfg: m.cfg };
       names[id] = next[id].name;
     }
     if (phase !== 'lobby' && phase !== 'end') {
-      for (const id in next) if (!online[id] && id !== myId) feed(nameOf(id) + ' joined');
-      for (const id in online) if (!next[id] && id !== myId) feed(nameOf(id) + ' left');
+      for (const id in next) if (!online[id] && id !== myId) feed([{ b: next[id].name }, ' joined'], 'sys');
+      for (const id in online) if (!next[id] && id !== myId) feed([{ b: nameOf(id) }, ' left'], 'sys');
     }
     online = next;
     const hadHost = hostOnline;
     const host = Object.values(online).find(p => p.host);
     hostOnline = !!host;
     if (isHost) {
-      for (const id in online) if (phase !== 'lobby' && !(id in scores)) scores[id] = 0;
-      if (mode === 'draw' && (phase === 'choosing' || phase === 'round') && drawer && !online[drawer]) { feed(nameOf(drawer) + ' left, skipping their turn'); endRound(); }
+      if (phase !== 'lobby' && phase !== 'end') for (const id of activePlayers()) {
+        if (!(id in scores)) scores[id] = 0;
+        if (!playerOrder.includes(id)) playerOrder.push(id);
+      }
+      if (mode === 'draw' && (phase === 'choosing' || phase === 'round') && drawer && !online[drawer]) { feed([{ b: nameOf(drawer) }, ' left, skipping their turn'], 'sys'); endTurn(); }
       else checkAllGot();
       refreshLobby();
     } else {
-      if (host && host.mode && phase === 'lobby') mode = host.mode;
+      if (host && host.cfg && phase === 'lobby') Object.assign(cfg, host.cfg);
       if (hostOnline) clearTimeout(findTimer);
       if (phase === 'lobby') refreshLobby();
-      else if (hadHost && !hostOnline) feed('The host disconnected, waiting for them…');
+      else if (hadHost && !hostOnline) feed('The host screen disconnected, waiting for it…', 'sys');
       else if (!hadHost && hostOnline) send({ t: 'hello', id: myId });
     }
     paintPlayers();
@@ -696,43 +794,61 @@
     if (isHost) {
       if (!readyOnce) {
         readyOnce = true;
-        el.hostBox.hidden = false; el.start.hidden = false; el.modeBox.hidden = false;
-        el.code.textContent = code.toUpperCase();
-        el.qr.innerHTML = '';
+        el.hostBox.hidden = false; el.start.hidden = false; el.setBox.hidden = false;
+        el.code.textContent = el.codeMini.textContent = code.toUpperCase();
+        el.qr.innerHTML = ''; el.qrMini.innerHTML = '';
         new QRCode(el.qr, { text: joinUrl(), width: 340, height: 340, correctLevel: QRCode.CorrectLevel.M });
+        new QRCode(el.qrMini, { text: joinUrl(), width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
       }
       refreshLobby();
     } else {
       if (phase === 'lobby' && !hostOnline) setStatus('Looking for the game…');
       clearTimeout(findTimer);
-      findTimer = setTimeout(() => { if (!hostOnline && phase === 'lobby') guestFail('Couldn\'t find game ' + code.toUpperCase() + '. Make sure the host\'s phone still shows the code, then try again.'); }, 12000);
+      findTimer = setTimeout(() => { if (!hostOnline && phase === 'lobby') guestFail('Couldn\'t find game ' + code.toUpperCase() + '. Make sure the host screen still shows the code, then try again.'); }, 12000);
     }
   }
-
   function guestFail(text) { setStatus(text, 'bad'); el.retry.hidden = false; }
-  const others = () => Object.keys(online).filter(id => id !== myId);
-  const MODE_TEXT = { robot: 'Robot draws (guess its scribbles)', draw: 'You draw (take turns drawing)' };
 
+  // ---------- lobby ----------
+  function paintSettings() {
+    el.modeRobot.classList.toggle('on', cfg.mode === 'robot');
+    el.modeDraw.classList.toggle('on', cfg.mode === 'draw');
+    el.optPics.hidden = cfg.mode !== 'robot';
+    el.optRounds.hidden = el.optTime.hidden = cfg.mode !== 'draw';
+    for (const box of el.setBox.querySelectorAll('.pills')) {
+      const key = box.dataset.opt;
+      for (const b of box.children) b.classList.toggle('on', String(cfg[key]) === b.dataset.v);
+    }
+    el.hostPlays.checked = cfg.hostPlays;
+  }
   function refreshLobby() {
     if (phase !== 'lobby') return;
-    const n = others().length;
+    const n = activePlayers().length;
     if (isHost) {
-      el.start.disabled = n === 0;
-      el.modeRobot.classList.toggle('on', mode === 'robot');
-      el.modeDraw.classList.toggle('on', mode === 'draw');
-      if (n) setStatus(n === 1 ? '1 player joined. Start now, or wait for more.' : n + ' players joined. Start now, or wait for more.', 'ok');
-      else setStatus('Ask everyone to scan this with their phone camera.');
+      paintSettings();
+      el.start.disabled = n < 2;
+      if (n >= 2) setStatus(n + ' players ready. Start now, or wait for more.', 'ok');
+      else setStatus(n === 1 ? '1 player in. You need at least 2 players.' : 'Ask everyone to scan this with their phone camera.');
     } else if (hostOnline) {
       el.retry.hidden = true;
       el.modeNote.hidden = false;
-      el.modeNote.replaceChildren('Game mode: ', Object.assign(document.createElement('b'), { textContent: MODE_TEXT[mode] || MODE_TEXT.robot }));
+      const txt = cfg.mode === 'draw' ? 'You draw · ' + cfg.rounds + ' rounds · ' + cfg.drawTime + 's each' : 'Robot draws · ' + cfg.pics + ' pictures';
+      el.modeNote.replaceChildren('Game: ', Object.assign(document.createElement('b'), { textContent: txt }));
       setStatus('You\'re in. Waiting for the host to start the game.', 'ok');
     }
     paintPlayers();
   }
-  function setMode(m) { if (!isHost || phase !== 'lobby') return; mode = m; trackMe(); refreshLobby(); }
-  el.modeRobot.addEventListener('click', () => setMode('robot'));
-  el.modeDraw.addEventListener('click', () => setMode('draw'));
+  let cfgTimer = 0;
+  function setCfg(k, v) {
+    if (!isHost || phase !== 'lobby') return;
+    cfg[k] = v; refreshLobby();
+    send({ t: 'cfg', cfg });
+    clearTimeout(cfgTimer); cfgTimer = setTimeout(trackMe, 300);
+  }
+  el.modeRobot.addEventListener('click', () => setCfg('mode', 'robot'));
+  el.modeDraw.addEventListener('click', () => setCfg('mode', 'draw'));
+  for (const box of el.setBox.querySelectorAll('.pills')) for (const b of box.children) b.addEventListener('click', () => setCfg(box.dataset.opt, Number(b.dataset.v)));
+  el.hostPlays.addEventListener('change', () => setCfg('hostPlays', el.hostPlays.checked));
 
   el.retry.addEventListener('click', () => location.reload());
   el.share.addEventListener('click', async () => {
@@ -744,32 +860,42 @@
   });
 
   // ---------- players and scores ----------
-  function chip(id, score, bump) {
-    const c = document.createElement('span');
-    const got = (phase === 'round' || phase === 'reveal') && gots.some(g => g.id === id);
-    c.className = 'chip' + (id === myId ? ' me' : '') + (online[id] || id === myId ? '' : ' off') + (bump ? ' bump' : '') + (got ? ' got' : '');
-    c.style.setProperty('--c', colorOf(id));
-    const dot = document.createElement('i');
-    const isDrawing = mode === 'draw' && id === drawer && (phase === 'choosing' || phase === 'round');
-    const nm = document.createElement('span'); nm.textContent = nameOf(id) + (id === myId ? ' (you)' : '') + (isDrawing ? ' ✎' : '') + (got ? ' ✓' : '');
-    c.append(dot, nm);
-    if (score !== undefined) { const b = document.createElement('b'); b.textContent = score; c.append(b); }
-    return c;
-  }
   function ranked() {
-    const ids = new Set([...Object.keys(scores), ...Object.keys(online), myId]);
-    return [...ids].sort((a, b) => (scores[b] || 0) - (scores[a] || 0) || nameOf(a).localeCompare(nameOf(b)));
+    const ids = new Set([...Object.keys(scores), ...activePlayers()]);
+    return [...ids].filter(id => isPlayer(id) || id in scores).sort((a, b) => (scores[b] || 0) - (scores[a] || 0) || nameOf(a).localeCompare(nameOf(b)));
   }
   function paintPlayers(bump) {
     const bumps = new Set([].concat(bump || []));
     if (phase === 'lobby') {
-      const ids = [myId, ...others()];
-      el.whoBox.hidden = ids.length < 2 && isHost;
-      el.whoLabel.textContent = 'In the room (' + ids.length + ')';
-      el.who.replaceChildren(...ids.map(id => chip(id)));
-    } else {
-      el.chips.replaceChildren(...ranked().map(id => chip(id, scores[id] || 0, bumps.has(id))));
+      const ids = activePlayers().concat(Object.keys(online).filter(id => !isPlayer(id) && id !== myId));
+      el.whoBox.hidden = ids.length === 0;
+      el.whoLabel.textContent = 'Players (' + activePlayers().length + ')';
+      el.who.replaceChildren(...activePlayers().map(id => {
+        const c = document.createElement('span');
+        c.className = 'chip' + (id === myId ? ' me' : '');
+        c.style.setProperty('--c', colorOf(id));
+        c.append(document.createElement('i'), nameOf(id) + (id === myId ? ' (you)' : ''));
+        return c;
+      }));
+      return;
     }
+    const ids = ranked();
+    let pos = 0, prev = null;
+    el.plist.replaceChildren(...ids.map((id, k) => {
+      const sc = scores[id] || 0;
+      if (sc !== prev) { pos = k + 1; prev = sc; }
+      const li = document.createElement('li');
+      const got = (phase === 'round' || phase === 'reveal') && gots.some(g => g.id === id);
+      const drawing = mode === 'draw' && id === drawer && phase !== 'end';
+      li.className = (id === myId ? 'me ' : '') + (got ? 'got ' : '') + (drawing ? 'drawing ' : '') + (online[id] || id === myId ? '' : 'off ') + (bumps.has(id) ? 'bump' : '');
+      li.style.setProperty('--c', colorOf(id));
+      const rk = Object.assign(document.createElement('span'), { className: 'rk', textContent: '#' + pos });
+      const nm = Object.assign(document.createElement('span'), { className: 'nm', textContent: nameOf(id) + (id === myId ? ' (you)' : '') });
+      const pt = Object.assign(document.createElement('span'), { className: 'pt', textContent: sc + ' pts' });
+      li.append(rk, nm, pt);
+      if (drawing || got) li.append(Object.assign(document.createElement('span'), { className: 'ic', textContent: drawing ? '✎' : '✓' }));
+      return li;
+    }));
   }
   function knownNames() { const o = {}; for (const id of ranked()) o[id] = nameOf(id); return o; }
 
@@ -779,84 +905,90 @@
     if (m.names) Object.assign(names, m.names);
     switch (m.t) {
       // host only
-      case 'hello': if (isHost && phase !== 'lobby') { if (!(m.id in scores)) scores[m.id] = 0; sendSync(m.id); } break;
-      case 'guess': if (isHost && m.i === roundI && typeof m.id === 'string') judge(m.id, String(m.text || '').slice(0, 24)); break;
+      case 'hello': if (isHost && phase === 'lobby') send({ t: 'cfg', cfg });
+        if (isHost && phase !== 'lobby') { if (isPlayer(m.id) && !(m.id in scores) && phase !== 'end') { scores[m.id] = 0; if (!playerOrder.includes(m.id)) playerOrder.push(m.id); } sendSync(m.id); } break;
+      case 'guess': if (isHost && m.i === turn && typeof m.id === 'string') judge(m.id, String(m.text || '').slice(0, 30)); break;
       case 'chose': if (isHost && m.id === drawer) hostChose(m.i, m.k); break;
       // everyone
-      case 'ink': if (m.i === roundI && mode === 'draw' && drawer !== myId && Array.isArray(m.ops)) applyOps(m.ops); break;
-      case 'chat': if (m.id !== myId && phase === 'round' && m.i === roundI) feed(nameOf(m.id) + ': ' + String(m.text || '').slice(0, 24)); break;
-      case 'close': if (m.id === myId && phase === 'round') feed('So close!', 'close'); break;
+      case 'ink': if (m.i === turn && mode === 'draw' && drawer !== myId && Array.isArray(m.ops)) applyOps(m.ops); break;
+      case 'chat': if (m.id !== myId && m.i === turn) feed([{ b: nameOf(m.id) + ':' }, ' ' + String(m.text || '').slice(0, 30)]); break;
+      case 'close': if (m.id === myId && phase === 'round') feed('"' + String(m.text || '') + '" is close!', 'close'); break;
       case 'got': if (!isHost) onGot(m); break;
       // guests only
-      case 'hint': if (!isHost && m.i === roundI) { mask = m.mask; paintHint(); } break;
-      case 'start': if (!isHost) { mode = m.mode || 'robot'; total = m.total || TOTAL; scores = m.scores || {}; countdown(); } break;
-      case 'round': if (!isHost) beginRobot(m.i, m.d, m.s); break;
-      case 'pick': if (!isHost) { total = m.total || total; beginChoosing(m.i, m.drawer, m.options); } break;
-      case 'turn': if (!isHost) beginDrawTurn(m.i, m.drawer, m.mask, null); break;
+      case 'hint': if (!isHost && m.i === turn) { mask = m.mask; paintHint(); } break;
+      case 'start': if (!isHost) { mode = m.mode; rounds = m.rounds || 3; total = m.total || 0; turnMs = m.turnMs || 80000; scores = m.scores || {}; countdown(); } break;
+      case 'round': if (!isHost) beginRobot(m); break;
+      case 'pick': if (!isHost) { roundNo = m.round; rounds = m.rounds; beginChoosing(m.i, m.drawer, m.options); } break;
+      case 'turn': if (!isHost) beginDrawTurn(m.i, m.drawer, m.mask, m.drawer === myId ? m.w : null); break;
       case 'result': if (!isHost) showResult(m); break;
       case 'end': if (!isHost) { scores = m.scores || scores; showEnd(); } break;
+      case 'cfg': if (!isHost && phase === 'lobby' && m.cfg) { Object.assign(cfg, m.cfg); refreshLobby(); } break;
+      case 'lobby': if (!isHost) { stopTimers(); phase = 'lobby'; scores = {}; show('lobby'); refreshLobby(); } break;
       case 'sync': if (!isHost && m.for === myId) applySync(m); break;
     }
   }
 
-  // ---------- timers and screens ----------
+  // ---------- clock, screens, timers ----------
   function stopTimers() {
     clearTimeout(roundTimer); clearTimeout(nextTimer); clearTimeout(countTimer); clearTimeout(chooseTimer);
     hintTimers.forEach(clearTimeout); hintTimers = [];
     cancelAnimationFrame(raf);
   }
-
   async function keepAwake() {
     try { if (navigator.wakeLock && document.visibilityState === 'visible' && !wake) { wake = await navigator.wakeLock.request('screen'); wake.addEventListener('release', () => { wake = null; }); } } catch (e) {}
   }
   document.addEventListener('visibilitychange', () => { if (phase !== 'lobby' && phase !== 'end') keepAwake(); });
 
-  function setRound(i) {
-    roundI = i; gots = []; iGot = false; feed('');
+  function resetTurn(i) {
+    turn = i; gots = []; iGot = false;
     el.banner.hidden = true; el.count.hidden = true; el.choose.hidden = true;
   }
   function startClock(ms, elapsed) {
-    roundMs = ms; t0 = performance.now() - Math.max(0, Math.min(ms, elapsed || 0));
+    phaseMs = ms; t0 = performance.now() - Math.max(0, Math.min(ms, elapsed || 0));
     cancelAnimationFrame(raf); frame();
   }
+  const leftFrac = () => Math.max(0, 1 - (performance.now() - t0) / phaseMs);
   function frame() {
-    const t = performance.now() - t0, left = 1 - t / roundMs;
-    if (phase === 'round' && mode === 'robot') draw(Math.min(1, t / DRAW_MS));
-    el.bar.style.transform = 'scaleX(' + Math.max(0, left) + ')';
-    el.timer.classList.toggle('low', left < 0.25 && phase === 'round');
+    const t = performance.now() - t0, left = Math.max(0, 1 - t / phaseMs);
+    if (phase === 'round' && mode === 'robot') draw(Math.min(1, t / ROBOT_DRAW_MS));
+    el.clock.style.setProperty('--left', left);
+    el.clockNum.textContent = Math.ceil(left * phaseMs / 1000);
+    el.clock.classList.toggle('low', phase === 'round' && left < 0.2);
     if (phase === 'round' || phase === 'choosing') raf = requestAnimationFrame(frame);
   }
   function setGuessing(on, placeholder) {
-    el.form.hidden = false; el.tools.hidden = true; el.cv.classList.remove('pen');
-    el.guess.disabled = !on; el.guess.value = on ? el.guess.value : '';
-    el.guess.placeholder = placeholder || 'What is it?';
-    if (on) el.guess.focus({ preventScroll: true });
+    el.tools.hidden = true; el.cv.classList.remove('pen');
+    el.form.hidden = !amPlayer();
+    el.guess.disabled = !on; if (!on) el.guess.value = '';
+    el.guess.placeholder = placeholder || 'Type your guess';
+    if (on && amPlayer()) el.guess.focus({ preventScroll: true });
   }
   function header() {
     if (phase === 'countdown') el.roundNo.textContent = 'Get ready';
-    else if (mode === 'robot') el.roundNo.textContent = 'Picture ' + (roundI + 1) + ' of ' + total;
-    else el.roundNo.textContent = 'Turn ' + (roundI + 1) + ' of ' + total + ' · ' + (drawer === myId ? 'your turn to draw' : nameOf(drawer) + ' is drawing');
+    else if (mode === 'robot') el.roundNo.textContent = 'Picture ' + (turn + 1) + ' of ' + total;
+    else el.roundNo.textContent = 'Round ' + roundNo + ' of ' + rounds;
     el.roomTag.textContent = 'Room ' + code.toUpperCase();
   }
   function paintHint() {
-    el.hint.hidden = mode !== 'draw' || phase !== 'round';
-    if (el.hint.hidden) return;
-    if (drawer === myId) { el.hint.replaceChildren('Draw: ' + word); return; }
-    const letters = mask.replace(/ /g, '').length;
-    el.hint.replaceChildren(mask.split('').map(c => c === ' ' ? ' ' : c).join(' ') + ' ', Object.assign(document.createElement('small'), { textContent: '(' + letters + ' letters)' }));
+    if (phase === 'choosing') { el.hint.textContent = drawer === myId ? 'Choose a word' : nameOf(drawer) + ' is choosing a word'; return; }
+    if (phase === 'countdown' || !mask) { el.hint.textContent = phase === 'countdown' ? 'Get ready!' : ''; return; }
+    if (mode === 'draw' && drawer === myId && phase === 'round') { el.hint.replaceChildren('Draw: ', Object.assign(document.createElement('span'), { textContent: word })); return; }
+    const shown = mask.split('').map(c => c === ' ' ? ' ' : c).join(' ');
+    el.hint.replaceChildren(shown + ' ', Object.assign(document.createElement('small'), { textContent: letterCount(mask) }));
   }
 
   function countdown(done) {
     stopTimers();
     phase = 'countdown';
     show('game');
+    document.body.classList.toggle('host-view', isHost && !cfg.hostPlays);
     keepAwake();
-    paintPlayers(); header();
-    el.banner.hidden = true; el.choose.hidden = true; el.hint.hidden = true; feed('');
+    feed(null); paintPlayers(); header(); paintHint();
+    el.banner.hidden = true; el.choose.hidden = true;
     setGuessing(false, 'Get ready…');
-    el.bar.style.transform = 'scaleX(1)'; el.timer.classList.remove('low');
-    cur = null; curD = -1; ink = []; drawer = null;
-    ctx.clearRect(0, 0, el.cv.width, el.cv.height);
+    el.clock.style.setProperty('--left', 1); el.clockNum.textContent = '';
+    cur = null; ink = []; drawer = null; mask = '';
+    clearPad();
     let n = 3;
     el.count.hidden = false; el.count.textContent = n;
     const tick = () => {
@@ -867,18 +999,22 @@
     countTimer = setTimeout(tick, 1000);
   }
 
-  // Robot mode: a picture animates in, everyone guesses.
-  function beginRobot(i, d, s, elapsed) {
-    if (!PICTURES[d]) return;
-    stopTimers(); show('game'); setRound(i);
-    mode = 'robot'; phase = 'round'; curD = d; curS = s; cur = prep(PICTURES[d], s || 1); drawer = null;
-    header(); paintHint(); paintPlayers(); setGuessing(true);
-    startClock(ROUND_MS, elapsed);
+  // Robot mode: a sketch animates in, everyone guesses.
+  function robotPic(m) {
+    if (m.src === 'h') return PICTURES[m.d] ? prep(PICTURES[m.d], m.s || 1, 'hand') : null;
+    return prep({ names: [], s: decodeQD(m.q || '') }, m.s || 1, 'qd');
+  }
+  function beginRobot(m, elapsed) {
+    stopTimers(); show('game'); resetTurn(m.i);
+    mode = 'robot'; phase = 'round'; total = m.total || total; robotMsg = m; drawer = null;
+    cur = robotPic(m); mask = m.mask || '';
+    clearPad(); header(); paintHint(); paintPlayers(); setGuessing(true);
+    startClock(ROBOT_MS, elapsed);
   }
 
-  // Draw mode, step 1: the drawer picks one of three words.
+  // Draw mode, step 1: the artist picks one of three words.
   function beginChoosing(i, who, opts, elapsed) {
-    stopTimers(); show('game'); setRound(i);
+    stopTimers(); show('game'); resetTurn(i);
     mode = 'draw'; phase = 'choosing'; drawer = who; options = opts || []; word = ''; mask = ''; pendingWord = ''; ink = []; cur = null;
     renderInk(); header(); paintHint(); paintPlayers();
     el.choose.hidden = false;
@@ -891,7 +1027,7 @@
       }));
       el.form.hidden = true; el.tools.hidden = true;
     } else {
-      el.chooseTitle.textContent = who === myId ? 'Getting your words…' : nameOf(who) + ' is picking a word…';
+      el.chooseTitle.textContent = who === myId ? 'Getting your words…' : nameOf(who) + ' is choosing a word…';
       el.chooseBtns.replaceChildren();
       setGuessing(false, 'Wait for the drawing…');
     }
@@ -901,46 +1037,50 @@
     if (phase !== 'choosing' || drawer !== myId || !options[k]) return;
     pendingWord = options[k];
     el.chooseBtns.replaceChildren(); el.chooseTitle.textContent = 'Get ready to draw…';
-    if (isHost) hostChose(roundI, k); else send({ t: 'chose', i: roundI, k, id: myId });
+    if (isHost) hostChose(turn, k); else send({ t: 'chose', i: turn, k, id: myId });
   }
 
-  // Draw mode, step 2: the drawer draws, everyone else guesses.
+  // Draw mode, step 2: the artist draws, everyone else guesses.
   function beginDrawTurn(i, who, m, myWord, elapsed) {
-    const keepInk = roundI === i && drawer === who;   // ink can arrive before the turn message
-    stopTimers(); show('game'); setRound(i);
+    const keepInk = turn === i && drawer === who;   // ink can arrive before the turn message
+    stopTimers(); show('game'); resetTurn(i);
     if (!keepInk) ink = [];
     mode = 'draw'; phase = 'round'; drawer = who; mask = m || ''; cur = null;
     if (who === myId) word = myWord || pendingWord || word;
     renderInk(); header(); paintHint(); paintPlayers();
-    if (who === myId) { el.form.hidden = true; el.tools.hidden = false; el.cv.classList.add('pen'); el.guess.blur(); }
-    else setGuessing(true, 'Type your guess');
-    startClock(TURN_MS, elapsed);
+    if (who === myId) { el.form.hidden = true; el.tools.hidden = false; el.cv.classList.add('pen'); el.guess.blur(); sizeCanvas(); }
+    else setGuessing(true);
+    feed([{ b: youOr(who) }, who === myId ? ' are drawing now' : ' is drawing now'], 'sys');
+    startClock(turnMs, elapsed);
   }
 
   function onGot(m) {
-    if (m.i !== roundI || phase !== 'round') return;
+    if (m.i !== turn || phase !== 'round') return;
     scores = m.scores || scores;
     if (!gots.some(g => g.id === m.id)) gots.push({ id: m.id, pts: m.pts });
-    feed(youOr(m.id) + ' guessed it! +' + m.pts, 'good');
+    feed([{ b: youOr(m.id) }, ' guessed the word! +' + m.pts], 'good');
     if (m.id === myId) { iGot = true; setGuessing(false, 'You got it! Waiting for the others…'); }
     paintPlayers([m.id, drawer].filter(Boolean));
   }
 
   function showResult(m) {
-    if (m.mode === 'robot' && (!cur || curD !== m.d)) { curD = m.d; curS = m.s; cur = PICTURES[m.d] ? prep(PICTURES[m.d], m.s || 1) : null; }
+    if (m.mode === 'robot' && (!cur || !robotMsg || robotMsg.i !== m.i)) { robotMsg = m; cur = robotPic(m); }
     stopTimers();
-    mode = m.mode || mode; phase = 'reveal'; roundI = m.i;
+    mode = m.mode || mode; phase = 'reveal'; turn = m.i;
     scores = m.scores || scores; gots = m.gots || gots; drawer = m.drawer || null;
-    show('game'); el.choose.hidden = true; el.count.hidden = true; el.hint.hidden = true;
+    show('game'); el.choose.hidden = true; el.count.hidden = true;
     if (mode === 'robot') draw(1, true); else renderInk();
     setGuessing(false, ' ');
-    el.bWord.textContent = mode === 'robot' ? (cur ? cur.names[0] : '') : (m.word || '');
+    el.hint.textContent = m.word || '';
+    el.bWord.textContent = m.word || '';
     const parts = gots.map(g => youOr(g.id) + ' +' + g.pts);
-    if (mode === 'draw' && drawer && gots.length) parts.push(youOr(drawer) + ' drew +' + gots.length);
+    if (mode === 'draw' && drawer && gots.length) parts.push(youOr(drawer) + ' drew +' + gots.length * DRAWER_PER_GUESS);
     el.bWho.textContent = parts.length ? parts.join(' · ') : (mode === 'robot' ? 'Too hard! Nobody scores' : 'Nobody guessed it');
     el.bWho.style.setProperty('--c', gots.length ? colorOf(gots[0].id) : 'var(--muted)');
-    el.banner.hidden = false; el.timer.classList.remove('low');
-    header(); paintPlayers(gots.map(g => g.id));
+    el.banner.hidden = false; el.clock.classList.remove('low');
+    el.clock.style.setProperty('--left', 0); el.clockNum.textContent = '0';
+    feed(['The word was ', { b: m.word || '?' }], 'sys');
+    header(); paintPlayers(gots.map(g => g.id).concat(mode === 'draw' && gots.length && drawer ? [drawer] : []));
   }
 
   function showEnd() {
@@ -958,130 +1098,151 @@
       const li = document.createElement('li');
       li.className = id === myId ? 'me' : '';
       li.style.setProperty('--c', colorOf(id));
-      const a = document.createElement('span'); a.className = 'pos'; a.textContent = pos + '.';
-      const b = document.createElement('span'); b.className = 'nm'; b.textContent = nameOf(id) + (id === myId ? ' (you)' : '');
-      const c = document.createElement('span'); c.className = 'sc'; c.textContent = sc;
-      li.append(a, b, c);
+      li.append(Object.assign(document.createElement('span'), { className: 'pos', textContent: pos + '.' }),
+        Object.assign(document.createElement('span'), { className: 'nm', textContent: nameOf(id) + (id === myId ? ' (you)' : '') }),
+        Object.assign(document.createElement('span'), { className: 'sc', textContent: sc }));
       return li;
     }));
     el.again.hidden = !isHost;
-    el.endNote.textContent = isHost ? 'Play again? You can switch modes first.' : 'Waiting for the host to start a rematch.';
+    el.endNote.textContent = isHost ? 'Change the mode or settings and play again.' : 'Waiting for the host to start another game.';
     show('end');
   }
 
   // ---------- host: runs the game ----------
   el.start.addEventListener('click', startGame);
-  el.again.addEventListener('click', () => { phase = 'lobby'; show('lobby'); refreshLobby(); });
+  el.again.addEventListener('click', () => { stopTimers(); phase = 'lobby'; scores = {}; send({ t: 'lobby' }); show('lobby'); refreshLobby(); });
+  const points = order => Math.round((50 + 250 * leftFrac() + ([50, 25][order] || 0)) / 5) * 5;
 
   function startGame() {
-    const players = [myId, ...others()];
+    const players = activePlayers();
     if (players.length < 2) return;
+    mode = cfg.mode; rounds = cfg.rounds; turnMs = cfg.drawTime * 1000; roundNo = 0; usedPics = new Set();
     scores = {}; for (const id of players) scores[id] = 0;
-    if (mode === 'robot') {
-      order = shuffle(PICTURES.map((_, i) => i)).slice(0, TOTAL);
-      seeds = order.map(() => Math.floor(Math.random() * 1e9));
-      total = order.length;
-    } else {
-      const cycles = players.length <= 3 ? 2 : 1;
-      drawOrder = [];
-      for (let c = 0; c < cycles; c++) drawOrder.push(...shuffle(players.slice()));
-      total = drawOrder.length;
-    }
-    send({ t: 'start', mode, total, scores, names: knownNames() });
-    countdown(() => nextRound(0));
+    playerOrder = shuffle(players.slice()); queue = [];
+    if (mode === 'robot') total = cfg.pics;
+    send({ t: 'start', mode, rounds, total, turnMs, scores, names: knownNames() });
+    countdown(() => nextTurn(0));
   }
 
-  function nextRound(i) {
+  function pickRobot() {
+    const pool = (QD ? QD.names.length : 0) + PICTURES.length;
+    let idx, tries = 0;
+    do { idx = Math.floor(Math.random() * pool); } while (usedPics.has(idx) && ++tries < 50);
+    usedPics.add(idx);
+    if (QD && idx < QD.names.length) {
+      const name = QD.names[idx].replace(/^the /, '');
+      const vars = QD.d[idx];
+      return { src: 'q', q: vars[Math.floor(Math.random() * vars.length)], word: name, answers: [name, QD.names[idx]] };
+    }
+    const d = idx - (QD ? QD.names.length : 0);
+    return { src: 'h', d, word: PICTURES[d].names[0], answers: PICTURES[d].names };
+  }
+
+  function nextTurn(i) {
     if (mode === 'robot') {
-      send({ t: 'round', i, d: order[i], s: seeds[i] });
-      beginRobot(i, order[i], seeds[i]);
-      roundTimer = setTimeout(endRound, ROUND_MS);
+      if (i >= total) { finish(); return; }
+      const p = pickRobot();
+      word = p.word; answers = p.answers;
+      const m = { t: 'round', i, total, src: p.src, d: p.d, q: p.q, s: Math.floor(Math.random() * 1e9), mask: maskOf(word) };
+      send(m); beginRobot(m);
+      roundTimer = setTimeout(endTurn, ROBOT_MS);
       return;
     }
-    while (i < total && !online[drawOrder[i]]) i++;           // skip players who left
-    if (i >= total) { finish(); return; }
-    const opts = shuffle(WORDS.slice()).slice(0, 3);
-    send({ t: 'pick', i, drawer: drawOrder[i], options: opts, total });
-    beginChoosing(i, drawOrder[i], opts);
+    // draw mode: everyone draws once per round, in the same order each round
+    for (;;) {
+      while (queue.length && !(online[queue[0]] || queue[0] === myId)) queue.shift();   // skip players who left
+      if (queue.length) break;
+      roundNo++;
+      if (roundNo > rounds) { finish(); return; }
+      queue = playerOrder.filter(id => (online[id] || id === myId) && isPlayer(id));
+      if (!queue.length) { finish(); return; }
+    }
+    const who = queue.shift();
+    const fresh = WORDS.filter(w => !usedWords.has(w));
+    const opts = shuffle(fresh.length >= 3 ? fresh : WORDS.slice()).slice(0, 3);
+    opts.forEach(w => usedWords.add(w));
+    send({ t: 'pick', i, drawer: who, options: opts, round: roundNo, rounds });
+    beginChoosing(i, who, opts);
     chooseTimer = setTimeout(() => hostChose(i, Math.floor(Math.random() * 3)), CHOOSE_MS);
   }
 
   function hostChose(i, k) {
-    if (phase !== 'choosing' || i !== roundI) return;
-    word = options[k] || options[0];
+    if (phase !== 'choosing' || i !== turn) return;
+    word = options[k] || options[0]; answers = [word];
     if (drawer === myId) pendingWord = word;
-    const m = word.replace(/[^ ]/g, '_');
-    send({ t: 'turn', i, drawer, mask: m });
+    const m = maskOf(word);
+    send({ t: 'turn', i, drawer, mask: m, w: word });   // w is only shown on the artist's phone
     beginDrawTurn(i, drawer, m, drawer === myId ? word : null);
-    roundTimer = setTimeout(endRound, TURN_MS);
-    if (word.replace(/ /g, '').length >= 4) hintTimers = [0.5, 0.75].map(f => setTimeout(revealLetter, TURN_MS * f));
+    roundTimer = setTimeout(endTurn, turnMs);
+    // reveal letters at steady intervals, never the whole word
+    const L = letterCount(m), n = L <= 3 ? 0 : Math.min(L - 2, Math.ceil(L * 0.5));
+    hintTimers = Array.from({ length: n }, (_, k2) => setTimeout(revealLetter, turnMs * (0.3 + 0.55 * (n > 1 ? k2 / (n - 1) : 0))));
   }
-
   function revealLetter() {
     if (phase !== 'round' || mode !== 'draw') return;
     const open = [...mask].map((c, i) => c === '_' ? i : -1).filter(i => i >= 0);
     if (open.length < 2) return;
     const j = open[Math.floor(Math.random() * open.length)];
     mask = mask.slice(0, j) + word[j] + mask.slice(j + 1);
-    send({ t: 'hint', i: roundI, mask });
+    send({ t: 'hint', i: turn, mask });
     paintHint();
+    feed('A letter was revealed', 'sys');
   }
 
   // The host checks every guess, so the answer never has to be sent to the guessers.
   function judge(id, text) {
-    if (phase !== 'round' || !text) return;
+    if (phase !== 'round' || !text || !isPlayer(id)) return;
     if (mode === 'draw' && id === drawer) return;
     if (gots.some(g => g.id === id)) return;
-    const answers = mode === 'robot' ? PICTURES[curD].names : [word];
     if (isMatch(text, answers)) {
-      const pts = POINTS[gots.length] || 1;
+      const pts = points(gots.length);
       scores[id] = (scores[id] || 0) + pts;
-      if (mode === 'draw') scores[drawer] = (scores[drawer] || 0) + 1;
-      const m = { t: 'got', i: roundI, id, pts, scores, names: { [id]: nameOf(id) } };
+      if (mode === 'draw' && drawer) scores[drawer] = (scores[drawer] || 0) + DRAWER_PER_GUESS;
+      const m = { t: 'got', i: turn, id, pts, scores, names: { [id]: nameOf(id) } };
       send(m); onGot(m);
       checkAllGot();
     } else if (isClose(text, answers)) {
-      if (id === myId) feed('So close!', 'close'); else send({ t: 'close', id });   // close guesses stay private
+      if (id === myId) feed('"' + text + '" is close!', 'close'); else send({ t: 'close', id, text });
     } else {
-      send({ t: 'chat', i: roundI, id, text });
-      if (id !== myId) feed(nameOf(id) + ': ' + text);
+      send({ t: 'chat', i: turn, id, text });
+      if (id !== myId) feed([{ b: nameOf(id) + ':' }, ' ' + text]);
     }
   }
-
   function checkAllGot() {
     if (!isHost || phase !== 'round') return;
-    const need = Object.keys(online).filter(x => !(mode === 'draw' && x === drawer));
-    if (need.length && need.every(x => gots.some(g => g.id === x))) endRound();
+    const need = activePlayers().filter(x => !(mode === 'draw' && x === drawer));
+    if (need.length && need.every(x => gots.some(g => g.id === x))) endTurn();
   }
-
-  function endRound() {
+  function endTurn() {
     if (phase !== 'round' && phase !== 'choosing') return;
     stopTimers();
-    const m = { t: 'result', i: roundI, mode, d: curD, s: curS, word: mode === 'draw' ? word : '', drawer, gots, scores, names: knownNames() };
+    const m = { t: 'result', i: turn, mode, word, drawer, gots, scores, names: knownNames() };
+    if (mode === 'robot' && robotMsg) Object.assign(m, { src: robotMsg.src, d: robotMsg.d, q: robotMsg.q, s: robotMsg.s, total });
     send(m); showResult(m);
-    nextTimer = setTimeout(() => { if (roundI + 1 < total) nextRound(roundI + 1); else finish(); }, REVEAL_MS);
+    nextTimer = setTimeout(() => nextTurn(turn + 1), REVEAL_MS);
   }
   function finish() { stopTimers(); phase = 'end'; send({ t: 'end', scores, names: knownNames() }); showEnd(); }
 
-  // Tell a (re)joining player where the game is.
   function sendSync(forId) {
-    const m = { t: 'sync', for: forId, mode, total, phase, i: roundI, elapsed: performance.now() - t0, scores, gots, names: knownNames(), d: curD, s: curS, drawer, mask };
+    const m = { t: 'sync', for: forId, mode, total, rounds, round: roundNo, turnMs, phase, i: turn, elapsed: performance.now() - t0, scores, gots, names: knownNames(), drawer, mask };
+    if (mode === 'robot' && robotMsg) Object.assign(m, { src: robotMsg.src, d: robotMsg.d, q: robotMsg.q, s: robotMsg.s });
     if (mode === 'draw') {
       m.ink = ink;
       if (forId === drawer) { m.word = word; if (phase === 'choosing') m.options = options; }
-      if (phase === 'reveal') m.word = word;
     }
+    if (phase === 'reveal') m.word = word;
     send(m);
   }
   function applySync(m) {
-    mode = m.mode || 'robot'; total = m.total || total; scores = m.scores || {};
+    mode = m.mode || 'robot'; total = m.total || total; rounds = m.rounds || rounds; roundNo = m.round || roundNo; turnMs = m.turnMs || turnMs; scores = m.scores || {};
     if (m.phase === 'end') { showEnd(); return; }
+    if (m.phase === 'lobby') return;
     if (m.phase === 'countdown') { if (phase !== 'countdown') countdown(); return; }
     const mine = () => { if ((m.gots || []).some(g => g.id === myId)) { iGot = true; setGuessing(false, 'You got it! Waiting for the others…'); } };
     if (mode === 'robot') {
-      beginRobot(m.i, m.d, m.s, m.elapsed);
+      beginRobot({ i: m.i, total: m.total, src: m.src, d: m.d, q: m.q, s: m.s, mask: m.mask }, m.elapsed);
       gots = m.gots || [];
-      if (m.phase === 'reveal') showResult({ mode, i: m.i, d: m.d, s: m.s, gots, scores, drawer: null }); else mine();
+      if (m.phase === 'reveal') showResult({ mode, i: m.i, src: m.src, d: m.d, q: m.q, s: m.s, word: m.word, gots, scores }); else mine();
     } else if (m.phase === 'choosing') {
       beginChoosing(m.i, m.drawer, m.options, m.elapsed);
     } else {
@@ -1095,89 +1256,162 @@
   // ---------- guessing ----------
   el.form.addEventListener('submit', e => {
     e.preventDefault();
-    const text = el.guess.value.trim().slice(0, 24);
-    if (phase !== 'round' || iGot || !text) return;
+    const text = el.guess.value.trim().slice(0, 30);
+    if (phase !== 'round' || iGot || !text || !amPlayer()) return;
     if (mode === 'draw' && drawer === myId) return;
     el.guess.value = '';
-    feed('You: ' + text);
-    if (isHost) judge(myId, text); else send({ t: 'guess', i: roundI, id: myId, text });
+    feed([{ b: 'You:' }, ' ' + text]);
+    if (isHost) judge(myId, text); else send({ t: 'guess', i: turn, id: myId, text });
     el.guess.focus({ preventScroll: true });
   });
 
-  // ---------- draw mode: pen, tools and live ink ----------
-  const INKS = ['#1f1d36', '#e63946', '#f4a261', '#f2c94c', '#2a9d8f', '#3a86ff', '#8338ec', '#8d5a3b', '#fffdf6'];
-  const SIZES = [0.8, 1.8, 4.2];
-  let penColor = INKS[0], penSize = SIZES[1], outbox = [], flushTimer = 0, penDown = false, lastPt = null;
+  // ---------- draw mode: tools and live ink ----------
+  const PAPER = '#fffdf6';
+  const PALETTE = ['#1f1d36', '#ffffff', '#8a8a8a', '#e63946', '#ff7b54', '#f4a261', '#f2c94c', '#7ed957', '#2a9d8f', '#3a86ff', '#1d3557', '#8338ec', '#f15bb5', '#8d5a3b'];
+  const SIZES = [0.6, 1.4, 2.8, 5.5];
+  const pen = { tool: 'pen', color: PALETTE[0], size: SIZES[1], filled: false };
+  let outbox = [], flushTimer = 0, down = false, lastPt = null, dragStart = null, snap = null;
 
   const canDraw = () => mode === 'draw' && phase === 'round' && drawer === myId;
   function inkXY(e) {
     const r = el.cv.getBoundingClientRect();
-    return [Math.round((e.clientX - r.left) / r.width * 1000) / 10, Math.round((e.clientY - r.top) / r.height * 1000) / 10];
+    const c = v => Math.round(Math.max(0, Math.min(100, v)) * 10) / 10;
+    return [c((e.clientX - r.left) / r.width * 100), c((e.clientY - r.top) / r.height * 100)];
   }
   function pushOps(...ops) { applyOps(ops); outbox.push(...ops); if (!flushTimer) flushTimer = setTimeout(flush, 60); }
-  function flush() { flushTimer = 0; if (!outbox.length) return; send({ t: 'ink', i: roundI, ops: outbox }); outbox = []; }
+  function flush() { flushTimer = 0; if (!outbox.length) return; send({ t: 'ink', i: turn, ops: outbox }); outbox = []; }
+
   el.cv.addEventListener('pointerdown', e => {
     if (!canDraw()) return;
     e.preventDefault();
     try { el.cv.setPointerCapture(e.pointerId); } catch (err) {}
-    penDown = true; lastPt = inkXY(e);
-    pushOps(['s', penColor, penSize, lastPt[0], lastPt[1]]);
+    const p = inkXY(e);
+    if (pen.tool === 'fill') { pushOps(['f', pen.color, p[0], p[1]]); return; }
+    down = true; lastPt = p;
+    if (pen.tool === 'pen' || pen.tool === 'eraser') pushOps(['s', pen.tool === 'eraser' ? PAPER : pen.color, pen.size, p[0], p[1]]);
+    else { dragStart = p; snap = ctx.getImageData(0, 0, el.cv.width, el.cv.height); }
   });
   el.cv.addEventListener('pointermove', e => {
-    if (!penDown || !canDraw()) return;
-    const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
-    for (const ev of (evs.length ? evs : [e])) {
-      const p = inkXY(ev);
-      if (lastPt && Math.hypot(p[0] - lastPt[0], p[1] - lastPt[1]) < 0.5) continue;
-      lastPt = p; pushOps(['p', p[0], p[1]]);
+    if (!down || !canDraw()) return;
+    if (pen.tool === 'pen' || pen.tool === 'eraser') {
+      const evs = e.getCoalescedEvents ? e.getCoalescedEvents() : [e];
+      for (const ev of (evs.length ? evs : [e])) {
+        const p = inkXY(ev);
+        if (lastPt && Math.hypot(p[0] - lastPt[0], p[1] - lastPt[1]) < 0.5) continue;
+        lastPt = p; pushOps(['p', p[0], p[1]]);
+      }
+    } else if (dragStart && snap) {
+      const p = inkXY(e);
+      ctx.putImageData(snap, 0, 0);
+      drawItem({ k: pen.tool, c: pen.color, w: pen.size, a: [...dragStart, ...p], fl: pen.filled ? 1 : 0 });
     }
   });
-  const penUp = () => { penDown = false; lastPt = null; };
+  const penUp = e => {
+    if (!down) return;
+    down = false;
+    if (dragStart && snap && canDraw()) {
+      const p = e && e.clientX !== undefined ? inkXY(e) : lastPt;
+      ctx.putImageData(snap, 0, 0);
+      if (p && Math.hypot(p[0] - dragStart[0], p[1] - dragStart[1]) > 0.8) pushOps([pen.tool, pen.color, pen.size, ...dragStart, ...p, pen.filled ? 1 : 0]);
+    }
+    dragStart = null; snap = null; lastPt = null;
+  };
   el.cv.addEventListener('pointerup', penUp);
   el.cv.addEventListener('pointercancel', penUp);
 
   function applyOps(ops) {
     let full = false;
     for (const op of ops) {
-      if (op[0] === 's') { ink.push({ c: op[1], w: op[2], pts: [[op[3], op[4]]] }); if (!full) drawStroke(ink[ink.length - 1], 0); }
-      else if (op[0] === 'p') { const s = ink[ink.length - 1]; if (!s) continue; s.pts.push([op[1], op[2]]); if (!full) drawStroke(s, s.pts.length - 2); }
-      else if (op[0] === 'u') { ink.pop(); full = true; }
-      else if (op[0] === 'c') { ink = []; full = true; }
+      const k = op[0];
+      if (k === 's') { ink.push({ k: 's', c: op[1], w: op[2], pts: [[op[3], op[4]]] }); if (!full) drawItem(ink[ink.length - 1]); }
+      else if (k === 'p') { const s = ink[ink.length - 1]; if (!s || s.k !== 's') continue; s.pts.push([op[1], op[2]]); if (!full) drawItem(s, s.pts.length - 2); }
+      else if (k === 'f') { const it = { k: 'f', c: op[1], x: op[2], y: op[3] }; ink.push(it); if (!full) drawItem(it); }
+      else if (k === 'line' || k === 'rect' || k === 'ellipse') { const it = { k, c: op[1], w: op[2], a: op.slice(3, 7), fl: op[7] }; ink.push(it); if (!full) drawItem(it); }
+      else if (k === 'u') { ink.pop(); full = true; }
+      else if (k === 'c') { ink = []; full = true; }
     }
     if (full) renderInk();
   }
-  function drawStroke(s, from) {
-    const k = el.cv.width / 100;
-    ctx.strokeStyle = s.c; ctx.fillStyle = s.c; ctx.lineWidth = s.w * k; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-    if (s.pts.length === 1) { ctx.beginPath(); ctx.arc(s.pts[0][0] * k, s.pts[0][1] * k, s.w * k / 2, 0, Math.PI * 2); ctx.fill(); return; }
-    const a = s.pts[Math.max(0, from)];
-    ctx.beginPath(); ctx.moveTo(a[0] * k, a[1] * k);
-    for (let i = Math.max(0, from) + 1; i < s.pts.length; i++) ctx.lineTo(s.pts[i][0] * k, s.pts[i][1] * k);
-    ctx.stroke();
+  function clearPad() { ctx.clearRect(0, 0, el.cv.width, el.cv.height); }
+  function drawItem(it, from = 0) {
+    const K = el.cv.width / 100;
+    ctx.strokeStyle = ctx.fillStyle = it.c; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    if (it.k === 's') {
+      ctx.lineWidth = it.w * K;
+      if (it.pts.length === 1) { ctx.beginPath(); ctx.arc(it.pts[0][0] * K, it.pts[0][1] * K, it.w * K / 2, 0, Math.PI * 2); ctx.fill(); return; }
+      const a = it.pts[Math.max(0, from)];
+      ctx.beginPath(); ctx.moveTo(a[0] * K, a[1] * K);
+      for (let i = Math.max(0, from) + 1; i < it.pts.length; i++) ctx.lineTo(it.pts[i][0] * K, it.pts[i][1] * K);
+      ctx.stroke();
+    } else if (it.k === 'f') {
+      floodFill(it.x, it.y, it.c);
+    } else {
+      const [x1, y1, x2, y2] = it.a.map(v => v * K);
+      ctx.lineWidth = it.w * K;
+      ctx.beginPath();
+      if (it.k === 'line') { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); return; }
+      if (it.k === 'rect') ctx.rect(Math.min(x1, x2), Math.min(y1, y2), Math.abs(x2 - x1), Math.abs(y2 - y1));
+      else ctx.ellipse((x1 + x2) / 2, (y1 + y2) / 2, Math.abs(x2 - x1) / 2, Math.abs(y2 - y1) / 2, 0, 0, Math.PI * 2);
+      if (it.fl) ctx.fill(); else ctx.stroke();
+    }
   }
-  function renderInk() { ctx.clearRect(0, 0, el.cv.width, el.cv.height); for (const s of ink) drawStroke(s, 0); }
+  function renderInk() {
+    ctx.fillStyle = PAPER; ctx.fillRect(0, 0, el.cv.width, el.cv.height);
+    for (const it of ink) drawItem(it);
+  }
+  // bucket tool: scanline flood fill on the pad's pixels
+  function floodFill(x, y, hex) {
+    const W = el.cv.width, H = el.cv.height;
+    const px = Math.max(0, Math.min(W - 1, Math.floor(x / 100 * W))), py = Math.max(0, Math.min(H - 1, Math.floor(y / 100 * H)));
+    const img = ctx.getImageData(0, 0, W, H), d = img.data;
+    const n = parseInt(hex.slice(1), 16), fr = n >> 16 & 255, fg = n >> 8 & 255, fb = n & 255;
+    const i0 = (py * W + px) * 4, tr = d[i0], tg = d[i0 + 1], tb = d[i0 + 2];
+    if (Math.abs(tr - fr) + Math.abs(tg - fg) + Math.abs(tb - fb) < 6) return;
+    const TOL = 100;
+    const seen = new Uint8Array(W * H);
+    const ok = p => !seen[p] && Math.abs(d[p * 4] - tr) + Math.abs(d[p * 4 + 1] - tg) + Math.abs(d[p * 4 + 2] - tb) <= TOL;
+    const stack = [px, py];
+    while (stack.length) {
+      const cy = stack.pop(); let cx = stack.pop();
+      let p = cy * W + cx;
+      while (cx > 0 && ok(p - 1)) { cx--; p--; }
+      let up = false, dn = false;
+      while (cx < W && ok(p)) {
+        seen[p] = 1; d[p * 4] = fr; d[p * 4 + 1] = fg; d[p * 4 + 2] = fb; d[p * 4 + 3] = 255;
+        if (cy > 0) { if (ok(p - W)) { if (!up) { stack.push(cx, cy - 1); up = true; } } else up = false; }
+        if (cy < H - 1) { if (ok(p + W)) { if (!dn) { stack.push(cx, cy + 1); dn = true; } } else dn = false; }
+        cx++; p++;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
 
+  const ICONS = {
+    pen: '<path d="M4 20l4-1 11-11-3-3L5 16z"/><path d="M14 6l3 3"/>',
+    eraser: '<path d="M8 20h12"/><path d="M5 15l8-8 6 6-6 6H9z"/>',
+    fill: '<path d="M5 11l7-7 7 7-7 7z"/><path d="M19 15c0 2 1 3 1 4a1 1 0 0 1-2 0c0-1 1-2 1-4z"/>',
+    line: '<path d="M5 19L19 5"/>',
+    rect: '<rect x="4" y="6" width="16" height="12" rx="1"/>',
+    ellipse: '<ellipse cx="12" cy="12" rx="8" ry="6"/>',
+  };
   function buildTools() {
-    const sw = INKS.map((c, i) => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'sw' + (i === 0 ? ' on' : '') + (i === INKS.length - 1 ? ' eraser' : '');
-      b.style.setProperty('--c', c);
-      b.setAttribute('aria-label', i === INKS.length - 1 ? 'Eraser' : 'Colour ' + (i + 1));
-      b.addEventListener('click', () => { penColor = c; el.tools.querySelectorAll('.sw').forEach(x => x.classList.toggle('on', x === b)); });
-      return b;
-    });
-    const sz = SIZES.map((w, i) => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'sz' + (i === 1 ? ' on' : '');
-      b.setAttribute('aria-label', ['Thin', 'Medium', 'Thick'][i] + ' pen');
-      const d = document.createElement('i'); d.style.setProperty('--d', [5, 9, 15][i] + 'px'); b.append(d);
-      b.addEventListener('click', () => { penSize = w; el.tools.querySelectorAll('.sz').forEach(x => x.classList.toggle('on', x === b)); });
-      return b;
-    });
-    const tb = (label, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = 'tbtn'; b.textContent = label; b.addEventListener('click', fn); return b; };
-    el.tools.replaceChildren(...sw, ...sz,
-      tb('Undo', () => { if (canDraw() && ink.length) pushOps(['u']); }),
-      tb('Clear', () => { if (canDraw()) pushOps(['c']); }));
+    const mk = (cls, label, html, fn) => { const b = document.createElement('button'); b.type = 'button'; b.className = cls; b.setAttribute('aria-label', label); b.title = label; b.innerHTML = html; b.addEventListener('click', fn); return b; };
+    const toolBtns = Object.keys(ICONS).map(t => mk('tool' + (t === 'pen' ? ' on' : ''), { pen: 'Pen', eraser: 'Eraser', fill: 'Bucket fill', line: 'Line', rect: 'Rectangle', ellipse: 'Circle' }[t],
+      '<svg viewBox="0 0 24 24">' + ICONS[t] + '</svg>', () => { pen.tool = t; toolBtns.forEach(x => x.classList.toggle('on', x === toolBtns[Object.keys(ICONS).indexOf(t)])); }));
+    const filledBtn = mk('tool txt', 'Filled shapes', 'Filled', () => { pen.filled = !pen.filled; filledBtn.classList.toggle('on', pen.filled); });
+    const undo = mk('tool txt', 'Undo', 'Undo', () => { if (canDraw() && ink.length) pushOps(['u']); });
+    const clr = mk('tool txt', 'Clear', 'Clear', () => { if (canDraw()) pushOps(['c']); });
+    const current = document.createElement('span'); current.className = 'cur'; current.style.setProperty('--c', pen.color);
+    const setColor = c => { pen.color = c; current.style.setProperty('--c', c); swatches.forEach(s => s.classList.toggle('on', s.dataset.c === c)); picker.classList.toggle('on', !PALETTE.includes(c)); if (pen.tool === 'eraser') toolBtns[0].click(); };
+    const swatches = PALETTE.map((c, i) => { const b = mk('sw' + (i === 0 ? ' on' : ''), 'Colour ' + c, '', () => setColor(c)); b.dataset.c = c; b.style.setProperty('--c', c); return b; });
+    const picker = document.createElement('label'); picker.className = 'picker'; picker.title = 'Pick any colour';
+    const inp = document.createElement('input'); inp.type = 'color'; inp.value = '#ff6f9c'; inp.setAttribute('aria-label', 'Pick any colour');
+    inp.addEventListener('input', () => setColor(inp.value));
+    picker.append(inp);
+    const sizes = SIZES.map((w, i) => { const b = mk('sz' + (i === 1 ? ' on' : ''), ['Thin', 'Medium', 'Thick', 'Huge'][i] + ' pen', '<i style="--d:' + [4, 8, 13, 20][i] + 'px"></i>', () => { pen.size = w; sizes.forEach(x => x.classList.toggle('on', x === b)); }); return b; });
+    const r1 = document.createElement('div'); r1.className = 'trow'; r1.append(...toolBtns, filledBtn, undo, clr);
+    const r2 = document.createElement('div'); r2.className = 'trow'; r2.append(current, ...swatches, picker, ...sizes);
+    el.tools.replaceChildren(r1, r2);
   }
   buildTools();
 
@@ -1185,10 +1419,10 @@
   function sizeCanvas() {
     const r = el.board.getBoundingClientRect();
     const size = Math.max(120, Math.floor(Math.min(r.width, r.height)));
-    const dpr = Math.min(3, window.devicePixelRatio || 1);
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
     el.cv.style.width = el.cv.style.height = size + 'px';
     if (el.cv.width !== Math.round(size * dpr)) { el.cv.width = el.cv.height = Math.round(size * dpr); }
-    if (mode === 'draw') renderInk();
+    if (mode === 'draw' && phase !== 'countdown') renderInk();
     else if (cur && phase === 'reveal') draw(1, true);
   }
   new ResizeObserver(() => { if (!el.game.hidden) sizeCanvas(); }).observe(el.board);
@@ -1198,7 +1432,7 @@
     c2.clearRect(0, 0, s, s);
     if (!pic) return;
     c2.lineWidth = s * 0.014; c2.lineCap = 'round'; c2.lineJoin = 'round';
-    if (reveal) {                      // show the lines that were left out, in pink
+    if (reveal) {
       c2.strokeStyle = '#ff6f9c'; c2.setLineDash([s * 0.02, s * 0.02]);
       for (const st of pic.strokes) if (st.hidden) { c2.beginPath(); st.pts.forEach(([x, y], i) => i ? c2.lineTo(x * k, y * k) : c2.moveTo(x * k, y * k)); c2.stroke(); }
       c2.setLineDash([]);
@@ -1226,27 +1460,30 @@
   const draw = (p, reveal) => drawPic(ctx, cur, p, reveal);
 
   // ---------- go ----------
-  if (params.has('sheet')) {           // picture check sheet for editing the drawings
+  async function loadSketches() {
+    try { const r = await fetch('drawings.json', { cache: 'force-cache' }); if (r.ok) QD = await r.json(); } catch (e) { QD = null; }
+  }
+  if (params.has('sheet')) {           // check sheet: the hand-made pictures, then a sample of real sketches
     document.getElementById('app').hidden = true;
     const grid = document.createElement('div'); grid.id = 'sheet';
-    PICTURES.forEach((pic, i) => {
-      const f = document.createElement('figure'), c = document.createElement('canvas');
-      c.width = c.height = 300; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: (i + 1) + '. ' + pic.names[0] }));
-      grid.append(f); drawPic(c.getContext('2d'), prep(pic, i + 7), 1, true);
-    });
+    const add = (label, pic) => { const f = document.createElement('figure'), c = document.createElement('canvas'); c.width = c.height = 300; f.append(c, Object.assign(document.createElement('figcaption'), { textContent: label })); grid.append(f); drawPic(c.getContext('2d'), pic, 1, true); };
+    PICTURES.forEach((pic, i) => add((i + 1) + '. ' + pic.names[0], prep(pic, i + 7, 'hand')));
     document.body.append(grid);
+    loadSketches().then(() => { if (QD) for (let i = 0; i < 40; i++) { const c = Math.floor(Math.random() * QD.names.length); add(QD.names[c], prep({ names: [], s: decodeQD(QD.d[c][0]) }, i + 3, 'qd')); } });
   } else if (typeof supabase === 'undefined' || typeof QRCode === 'undefined') {
     setStatus('The game couldn\'t load. Check your internet and try again.', 'bad'); el.retry.hidden = false;
   } else if (isHost) {
     code = Array.from({ length: 4 }, () => 'abcdefghjkmnpqrstuvwxyz'[Math.floor(Math.random() * 23)]).join('');
     setStatus('Setting up…');
+    paintSettings();
+    loadSketches();
     connect();
   } else {
     setStatus('Joining the game…');
     connect();
   }
 
-  window.__dd = { PICTURES, WORDS, isMatch, isClose, prep, get state() { return { phase, mode, roundI, total, scores, role, myId, drawer, gots, answer: mode === 'robot' ? (cur && cur.names[0]) : (word || null), mask, options, ink: ink.length, online: Object.keys(online).length }; } };
+  window.__dd = { PICTURES, WORDS, isMatch, isClose, prep, get QD() { return QD; }, get state() { return { phase, mode, turn, total, roundNo, rounds, scores, isHost, myId, drawer, gots, answer: word || null, mask, options, ink: ink.length, online: Object.keys(online).length, players: activePlayers().length }; } };
 })();
 </script>
 </body>
